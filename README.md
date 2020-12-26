@@ -18,7 +18,7 @@ The emulator supports the following features:
 - 48KB of RAM
 - Snapshot file format for loading existing ZX Spectrum programs and saving the current state of the machine into this format; as well.
 - Reseting
-- Built in Z80 diassembler and debugger
+- Built in Z80 disassembler and debugger
 - Different zoom levels: 1x1, 2x2, Full screen mode
 - Turning on or off the screen border
 - Interlace or non-interlace video rendering
