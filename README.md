@@ -10,7 +10,21 @@ Other dependencies:
 - DirectX (DirectDraw, DirectInput, DirectSound)
 - MFC
 
+
 I developed this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it to be open source.
+
+The emulator supports the following features:
+
+- 48KB of RAM
+- Snapshot file format for loading existing ZX Spectrum programs and saving the current state of the machine into this format; as well.
+- Reseting
+- Built in Z80 diassembler and debugger
+- Different zoom levels: 1x1, 2x2, Full screen mode
+- Turning on or off the screen border
+- Interlace or non-interlace video rendering
+- Different speed options: real, synchronized to video and full speed
+- Video speed test
+- Keyboard assistant to help using the Spectrum's tokenized keyboard
 
 Note: The Z80 CPU emulation supports only the public instruction set.
 
