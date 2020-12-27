@@ -29,6 +29,7 @@ The emulator supports the following features:
 - Different speed options: real, synchronized to video and full speed
 - Video speed test
 - Keyboard assistant to help using the Spectrum's tokenized keyboard
+- External ROM support
 
 Note: The Z80 CPU emulation supports only the public instruction set.
 
