@@ -15,7 +15,7 @@ Other dependencies:
 - MFC
 
 
-I developed this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it to be open source.
+I was developing this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it open source.
 
 The emulator supports the following features:
 
