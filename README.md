@@ -1,10 +1,14 @@
 # spem
 ZX Spectrum 48K emulator
 
-The source code can be built using Visual Studio 2015, 2017 or 2019.
+The source code can be built with Visual Studio 2015, 2017 or 2019.
 
 Target platform: Windows 8.1
 Platform toolset: Visual Studio 2015 (v140)
+
+Other Visual Studio components:
+- Workload Desktop development with C++
+- C++ MFC for latest v142 build tools (x86 & x64)
 
 Other dependencies:
 - DirectX (DirectDraw, DirectInput, DirectSound)
