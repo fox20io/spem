@@ -33,7 +33,5 @@ The emulator supports the following features:
 
 Note: The Z80 CPU emulation supports only the public instruction set.
 
-Issues have been found:
-- Full screen mode breaks
-- Sound generation doesn't work
+
 
