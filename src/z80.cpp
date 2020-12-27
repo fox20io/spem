@@ -253,9 +253,8 @@ void CZ80::ExecuteInstruction(DESCREC* pdr)
 	}
 }
 
-//////////////////////////////////////////////////////////////////
-//	Egy adott flag állapotának beállítása
 
+//	Sets or clears the specified bit in the F register
 void CZ80::SetFlag(BYTE flag, BOOL state)
 {
 	if (state)
@@ -264,17 +263,14 @@ void CZ80::SetFlag(BYTE flag, BOOL state)
 		m_Regs.F &= ~flag;
 }
 
-//////////////////////////////////////////////////////////////////
-//	Adott flag állapotának lekérdezése.
 
+//	Returns the state of the specified bit in the F register
 BOOL CZ80::GetFlag(BYTE flag)
 {
 	return (m_Regs.F & flag) ? TRUE : FALSE;
 }
 
-//////////////////////////////////////////////////////////////////
-//	Egy kódolt regiszter típus nélküli címének lekérdezése.
-
+// Returns the pointer of the specified register
 void* CZ80::GetRegAddress(int Reg)
 {
 	switch (Reg)
