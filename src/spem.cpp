@@ -30,6 +30,7 @@ extern BYTE* pOutp;
 extern void (*lpVideoFunc)();
 extern int dSpeed;
 extern BOOL fInterlace;
+extern Speaker ZxSpeaker;
 
 // Globals
 HINSTANCE hInst;								// current instance
@@ -81,7 +82,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	if (!InitInstance(hInstance, nCmdShow))
 		return FALSE;
 
-	InitWaveOut();
+	ZxSpeaker.Initialize();
+	ZxSpeaker.Play();
+
 	hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_ACCEL);
 
 	for (;;)
@@ -105,7 +108,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	TermDI();
 
 	if (isSound)
-		TermWaveOut();
+	{
+		ZxSpeaker.Stop();
+	}
 
 	return msg.wParam;
 }
@@ -173,7 +178,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	// Set the size of the window which is 1x1 at startup, as well as, the window is always
 	// apperas in the center of the screen.
-	SetMagnify(DMODE_1X);
+	SetMagnify(DMODE_2X);
 
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -227,12 +232,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_ENTERMENULOOP:
 		if (isSound)
-			StopPlay();
+			ZxSpeaker.Stop();
 		break;
 
 	case WM_EXITMENULOOP:
 		if (isSound)
-			StartPlay();
+			ZxSpeaker.Play();
 		break;
 
 	case WM_SETFOCUS:
@@ -413,12 +418,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		TermDD();
 		TermDI();
 		if (isSound)
-			TermWaveOut();
+		{
+			ZxSpeaker.Stop();
+		}
 		PostQuitMessage(0);
 		break;
 
 	case MM_WOM_DONE:
-		StartPlay();
+		ZxSpeaker.Play();
 		break;
 
 	default:
@@ -523,7 +530,7 @@ void ChangeBorder()
 
 void LoadSnapshot()
 {
-	StopPlay();
+	ZxSpeaker.Stop();
 
 	TCHAR szFilter[MAX_LOADSTRING];
 	LoadString(hInst, IDS_LOAD_FILTER, szFilter, MAX_LOADSTRING);
@@ -604,14 +611,14 @@ void LoadSnapshot()
 	}
 
 	if (isSound)
-		StartPlay();
+		ZxSpeaker.Play();
 
 	return;
 }
 
 void SaveSnapshot()
 {
-	StopPlay();
+	ZxSpeaker.Stop();
 
 	TCHAR szFilter[MAX_LOADSTRING];
 	LoadString(hInst, IDS_SAVE_FILTER, szFilter, MAX_LOADSTRING);
@@ -683,7 +690,7 @@ void SaveSnapshot()
 	}
 
 	if (isSound)
-		StartPlay();
+		ZxSpeaker.Play();
 }
 
 //
@@ -795,7 +802,11 @@ void SetSoundState()
 	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_SOUND, FALSE, &minf);
 
 	if (isSound)
-		InitWaveOut();
+	{
+		ZxSpeaker.Play();
+	}
 	else
-		TermWaveOut();
+	{
+		ZxSpeaker.Stop();
+	}
 }

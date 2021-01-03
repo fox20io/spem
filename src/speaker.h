@@ -11,15 +11,33 @@
 #if !defined(ZX_SPECTRUM_SPEAKER_V0100_INCLUDED)
 #define ZX_SPECTRUM_SPEAKER_V0100_INCLUDED
 
-#define	BUFFER_RATE		22050
-#define BUFFER_LENGTH	BUFFER_RATE*2
+class Speaker
+{
+protected:
+	// DS buffer management members
+	LPDIRECTSOUND8 m_dsound;
+	WAVEFORMATEX m_format;
+	LPDIRECTSOUNDBUFFER m_dsbuf;
+	DSBUFFERDESC m_buf_format;
 
-void	InitWaveOut();
-void	TermWaveOut();
-void	IncWaveCursor(BYTE b);
-void	CALLBACK TimerProc(UINT, UINT, DWORD, DWORD, DWORD);
-void	StartPlay();
-void	StopPlay();
-//void	CALLBACK OutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
+	const double BufferLengthInMs = 310.0;
+	
+	// virtual buffer management members
+	LPBYTE m_buffer = NULL;
+	int m_buffer_size = 0;
+	int m_buffer_pos = 0;
+	int m_last_dsbuff_pos = 0;
+
+public:
+	Speaker();
+	~Speaker();
+
+	BOOL Initialize();
+	BOOL Play();
+	BOOL Stop();
+	void ApplyBuffer(int runtimeSpanMs);
+	void CreateBuffer(int size);
+	void WriteNextBufferBit(BOOL pcmBit);
+};
 
 #endif

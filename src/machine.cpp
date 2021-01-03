@@ -14,13 +14,15 @@
 #include "speaker.h"
 
 CZ80			Cpu;
+Speaker			ZxSpeaker;
 BYTE* pMem = NULL;
 BYTE* pInp = NULL;
 BYTE* pOutp = NULL;
 DWORD			temp;
 void			(*lpVideoFunc)() = Video;
-int				dSpeed = SPEED_REAL;
+int				dSpeed = SPEED_SYNCTOVIDEO;
 BOOL			fInterlace = TRUE;
+int				GL_InstructionsPerEmulatorLoop = CPU_REAL_TICKS;
 
 THREADSTRUCT gl_ThreadData = { NULL, NULL, NULL };
 
@@ -29,7 +31,6 @@ extern BYTE		KeyMatrix[8];
 extern HWND		hMainWnd;
 extern IDirectDraw* pDD;
 extern HINSTANCE hInst;
-extern UINT ThreadFunc(LPVOID lParam);
 
 void InitContext()
 {
@@ -66,7 +67,7 @@ void InitContext()
 		HRSRC hrc = ::FindResource(hInst, MAKEINTRESOURCE(IDR_ROM), TEXT("ROM"));
 		if (hrc == NULL)
 		{
-			::MessageBox(NULL, _T("Végzetes hiba! Az emulátor nem indítható el."), _T("Hiba"), MB_OK);
+			::MessageBox(NULL, _T("Fatal error! The emulator cannot be started."), _T("Error"), MB_OK);
 			::PostQuitMessage(-1);
 		}
 
@@ -82,6 +83,8 @@ void InitContext()
 
 	gl_ThreadData.lpSpeaker = (pOutp + 0xfe);
 	//    AfxBeginThread( ThreadFunc, (LPVOID)&gl_ThreadData );
+
+	GL_InstructionsPerEmulatorLoop = ((double)CPU_INT_TIMER / 1000.0) / (CPU_AVG_MCYCLES / (double)CPU_FREQUENCY_HZ);
 }
 
 //
@@ -105,7 +108,10 @@ void Operate()
 			lTC_df = tTC;
 			divider = !divider;
 
-			for (int i = 0; i < CPU_REAL_TICKS; i++)
+			ZxSpeaker.CreateBuffer(GL_InstructionsPerEmulatorLoop);
+
+			//for (int i = 0; i < CPU_REAL_TICKS; i++)
+			for (int i = 0; i < GL_InstructionsPerEmulatorLoop; i++)
 			{
 				Cpu.Run();
 
@@ -124,9 +130,10 @@ void Operate()
 					*(pInp + 0xfe) = ~col;
 				}
 
-				IncWaveCursor(*(pOutp + 0xfe));
-
+				ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
 			}
+
+			ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
 
 			if (fInterlace)
 			{
@@ -146,6 +153,9 @@ void Operate()
 	{
 		pDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, NULL);
 		divider = !divider;
+
+		ZxSpeaker.CreateBuffer(GL_InstructionsPerEmulatorLoop);  // consider!
+
 		for (int i = 0; i < CPU_REAL_TICKS; i++)
 		{
 			Cpu.Run();
@@ -165,8 +175,10 @@ void Operate()
 				*(pInp + 0xfe) = ~col;
 			}
 
-			IncWaveCursor(*(pOutp + 0xfe));
+			ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
 		}
+
+		ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
 
 		if (fInterlace)
 		{
@@ -184,6 +196,8 @@ void Operate()
 
 	case SPEED_FULL:
 	{
+		ZxSpeaker.CreateBuffer(GL_InstructionsPerEmulatorLoop); // consider!
+
 		for (int i = 0; i < CPU_IDLE_TICKS; i++)
 		{
 			Cpu.Run();
@@ -203,8 +217,10 @@ void Operate()
 				*(pInp + 0xfe) = ~col;
 			}
 
-			IncWaveCursor(*(pOutp + 0xfe));
+			ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
 		}
+
+		ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
 
 		DWORD tTC;
 

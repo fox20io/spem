@@ -11,167 +11,194 @@
 #include "StdAfx.h"
 #include "speaker.h"
 #include "machine.h"
+#include <cstdint>
 
-WAVEFORMATEX	sWfx;
-WAVEHDR			sWhdr;
-BYTE			wb[BUFFER_LENGTH];
-BYTE			wb2[BUFFER_LENGTH];
-HWAVEOUT	  	hWo = 0;
-DWORD			dwEvents = 0;
-DWORD			dwSec;
-MMRESULT		idTimer;
-DWORD           dwStartTime = 0;
-int             iLastPos = 0;
-
-extern	HWND	hMainWnd;
-extern  THREADSTRUCT gl_ThreadData;
-
-UINT ThreadFunc(LPVOID lParam);
-void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2);
-
-//
-// Initializes DirectSound
-// - PCM driver initialization
-// - wavetable format selection
-// - starts multimedia timer
-//
-void InitWaveOut()
+Speaker::Speaker()
 {
-	gl_ThreadData.lpAudioBuffer = wb;
-	gl_ThreadData.lpStartTime = &dwStartTime;
+}
 
-	memset(wb, 0x80, BUFFER_LENGTH);
-	//memset(wb2, 0x80, BUFFER_LENGTH);
+Speaker::~Speaker()
+{
+	if (m_buffer != NULL)
+		delete[] m_buffer;
+}
 
-	memset(&sWfx, 0, sizeof(WAVEFORMATEX));
-	sWfx.wFormatTag = WAVE_FORMAT_PCM;
-	sWfx.nChannels = 1;
-	sWfx.nSamplesPerSec = BUFFER_RATE;
-	sWfx.nAvgBytesPerSec = BUFFER_RATE;
-	sWfx.wBitsPerSample = 8;
-	sWfx.nBlockAlign = 1;
-	sWfx.cbSize = 0;
+BOOL Speaker::Initialize()
+{
+	memset(&m_format, 0, sizeof(WAVEFORMATEX));
+	m_format.wFormatTag = WAVE_FORMAT_PCM;
+	m_format.nChannels = 1;
+	m_format.wBitsPerSample = 8;
+	m_format.nSamplesPerSec = 22050;
+	m_format.nBlockAlign = m_format.nChannels * m_format.wBitsPerSample / 8;
+	m_format.nAvgBytesPerSec = m_format.nBlockAlign * m_format.nSamplesPerSec;
+	m_format.cbSize = 0;
 
-	sWhdr.dwBufferLength = BUFFER_LENGTH;
+	if (DirectSoundCreate8(NULL, &m_dsound, NULL) != DS_OK)
+		return FALSE;
+	if (m_dsound->SetCooperativeLevel(GetDesktopWindow(), DSSCL_PRIORITY) != DS_OK)
+		return FALSE;
 
-	//*sWhdr.dwFlags = WHDR_BEGINLOOP | WHDR_ENDLOOP;
-	//sWhdr.dwFlags = WHDR_BEGINLOOP;
-	//sWhdr.dwLoops = 0xffffffff;
-	//*sWhdr.dwLoops = 1;
+	memset(&m_buf_format, 0, sizeof(DSBUFFERDESC));
+	m_buf_format.dwSize = sizeof(m_buf_format);
+	m_buf_format.dwFlags =
+		DSBCAPS_GETCURRENTPOSITION2 |
+		DSBCAPS_STICKYFOCUS | 
+		DSBCAPS_GLOBALFOCUS |
+		DSBCAPS_LOCSOFTWARE |
+		//DSBCAPS_CTRLPOSITIONNOTIFY |
+		DSBCAPS_CTRLVOLUME;
+	m_buf_format.dwBufferBytes = (double)m_format.nSamplesPerSec * BufferLengthInMs / 1000.0;
+	m_buf_format.dwReserved = 0;
+	m_buf_format.lpwfxFormat = &m_format;
 
-	sWhdr.dwFlags = 0L;
-	sWhdr.dwLoops = 0L;
+	if (m_dsound->CreateSoundBuffer(&m_buf_format, &m_dsbuf, NULL) != DS_OK)
+		return FALSE;
 
-	sWhdr.lpData = (LPSTR)wb;
+	uint8_t* data1, * data2;
+	uint32_t size1, size2;
 
-	waveOutOpen(&hWo, WAVE_MAPPER, &sWfx,
-		(DWORD)waveOutProc, 0x12345, CALLBACK_FUNCTION);
+	if (IDirectSoundBuffer_Lock(m_dsbuf, 0, m_buf_format.dwBufferBytes, (LPVOID*)&data1, (LPDWORD)&size1,
+		(LPVOID*)&data2, (LPDWORD)&size2, DSBLOCK_ENTIREBUFFER) != DS_OK)
+		return FALSE;
 
-	//for (int i =0; i < BUFFER_LENGTH; i++)
-	  //  wb[i] = rand()%256;
+	for (uint32_t i = 0; i < size1; i++)
+		data1[i] = 0;
 
-	//*waveOutOpen( &hWo, WAVE_MAPPER, &sWfx, (DWORD)hMainWnd, 0L, CALLBACK_WINDOW );
-	//waveOutOpen( &hWo, WAVE_MAPPER, &sWfx, NULL, 0L, WAVE_ALLOWSYNC );
+	IDirectSoundBuffer_Unlock(m_dsbuf, (LPVOID)data1, (DWORD)size1, (LPVOID)data2, (DWORD)size2);
 
-	waveOutPrepareHeader(hWo, &sWhdr, sizeof(WAVEHDR));
-	waveOutWrite(hWo, &sWhdr, sizeof(WAVEHDR));
-	dwStartTime = ::GetTickCount();
-	//*StartPlay();
-	//*idTimer = timeSetEvent( 1000, 0, TimerProc, 0, TIME_PERIODIC );
+	return TRUE;
+}
+
+BOOL Speaker::Play()
+{
+	if (m_dsbuf != NULL)
+	{
+		if (IDirectSoundBuffer_Play(m_dsbuf, 0, 0, DSBPLAY_LOOPING) != DS_OK)
+			return FALSE;
+	}
+	return TRUE;
 }
 
 
-//----------------------------------------------------------------------------;
-//  waveOutProc
-//----------------------------------------------------------------------------;
-void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
+BOOL Speaker::Stop()
 {
-	if (uMsg == WOM_DONE)
+	if (m_dsbuf != NULL)
 	{
-		//        waveOutPrepareHeader( hWo, &sWhdr, sizeof( WAVEHDR ) );
-		//        waveOutWrite( hWo, &sWhdr, sizeof( WAVEHDR ) );
-		dwStartTime = ::GetTickCount();
+		if (IDirectSoundBuffer_Stop(m_dsbuf) != DS_OK)
+			return FALSE;
+
+		m_last_dsbuff_pos = 0;
+	}
+	return TRUE;
+}
+
+void Speaker::CreateBuffer(int size)
+{
+	if (m_buffer_size != size || m_buffer == NULL)
+	{
+		if (m_buffer != NULL)
+			delete[] m_buffer;
+		m_buffer = new BYTE[size];
+		m_buffer_size = size;
+	}
+	::memset(m_buffer, 0, size);
+	m_buffer_pos = 0;
+	m_last_dsbuff_pos = 0;
+}
+
+void Speaker::WriteNextBufferBit(BOOL pcmBit)
+{
+	if (m_buffer_pos < m_buffer_size - 1)
+	{
+		m_buffer[m_buffer_pos] = pcmBit;
+		m_buffer_pos++;
 	}
 }
 
-
-//----------------------------------------------------------------------------;
-//
-//	void TermWaveOut
-//
-//	Leírás:
-//		A PCM lejátszó driver lezárása, valamint a sebességmérõ multimédia
-//		timer kilövése.
-//
-//----------------------------------------------------------------------------;
-
-void TermWaveOut()
+BOOL AppWriteDataToBuffer(
+	LPDIRECTSOUNDBUFFER lpDsb,  // The buffer.
+	DWORD dwOffset,              // Our own write cursor.
+	LPBYTE lpbSoundData,         // Start of our data.
+	DWORD dwSoundBytes)          // Size of block to copy.
 {
-	StopPlay();
-	waveOutUnprepareHeader(hWo, &sWhdr, sizeof(WAVEHDR));
-	waveOutClose(hWo);
-	//*timeKillEvent( idTimer );
+	LPVOID  lpvPtr1;
+	DWORD dwBytes1;
+	LPVOID  lpvPtr2;
+	DWORD dwBytes2;
+	HRESULT hr;
+
+	// Obtain memory address of write block. This will be in two parts
+	// if the block wraps around.
+
+	hr = lpDsb->Lock(dwOffset, dwSoundBytes, &lpvPtr1,
+		&dwBytes1, &lpvPtr2, &dwBytes2, 0);
+
+	// If the buffer was lost, restore and retry lock. 
+
+	if (DSERR_BUFFERLOST == hr)
+	{
+		lpDsb->Restore();
+		hr = lpDsb->Lock(dwOffset, dwSoundBytes,
+			&lpvPtr1, &dwBytes1,
+			&lpvPtr2, &dwBytes2, 0);
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Write to pointers. 
+
+		CopyMemory(lpvPtr1, lpbSoundData, dwBytes1);
+		if (NULL != lpvPtr2)
+		{
+			CopyMemory(lpvPtr2, lpbSoundData + dwBytes1, dwBytes2);
+		}
+
+		// Release the data back to DirectSound. 
+
+		hr = lpDsb->Unlock(lpvPtr1, dwBytes1, lpvPtr2,
+			dwBytes2);
+		if (SUCCEEDED(hr))
+		{
+			// Success. 
+			return TRUE;
+		}
+	}
+
+	// Lock, Unlock, or Restore failed. 
+
+	return FALSE;
 }
 
-void IncWaveCursor(BYTE b)
+void Speaker::ApplyBuffer(int runtimeSpanMs)
 {
-	/*	static int wc = 0;
-		static int cnt = 0;
-
-		dwEvents++;
-		cnt++;
-
-		if ( cnt < (int)dwSec )
+	if (m_dsbuf != NULL)
+	{
+		// calc the size of buffer for runtime span
+		double bytesPerMs = (double)m_format.nSamplesPerSec / BufferLengthInMs;
+		DWORD dsBuffSizeForSpan = runtimeSpanMs * bytesPerMs;
+		if (dsBuffSizeForSpan > m_buf_format.dwBufferBytes)
+			dsBuffSizeForSpan = m_buf_format.dwBufferBytes;
+		if (dsBuffSizeForSpan == 0)
 			return;
+		BYTE* soundData = new BYTE[dsBuffSizeForSpan];
+		int stepInBuff = m_buffer_size / dsBuffSizeForSpan;
+		for (int i = 0, j = 0; i < dsBuffSizeForSpan; i ++)
+		{
+			soundData[i] = m_buffer[j] ? 50 : 0;
+			j += stepInBuff;
+		}
 
-		cnt = 0;
+		if (m_last_dsbuff_pos == 0)
+		{
+			DWORD dwCurrentWriteCursor;
+			IDirectSoundBuffer_GetCurrentPosition(m_dsbuf, NULL, &dwCurrentWriteCursor);
+			m_last_dsbuff_pos = dwCurrentWriteCursor;
+		}
 
-		wb[wc] = ( b & 16 ) ? 0x20 : 0xe0;
-		wc++;
+		AppWriteDataToBuffer(m_dsbuf, m_last_dsbuff_pos, soundData, dsBuffSizeForSpan);
 
-		if ( wc == BUFFER_LENGTH )
-			wc = 0;*/
-
-	DWORD dwTime = GetTickCount() - dwStartTime;
-	DWORD dwMax = MulDiv(1000, BUFFER_LENGTH, BUFFER_RATE);
-	if (dwTime > dwMax)
-		return;
-
-	int pos = MulDiv(BUFFER_LENGTH, dwTime, dwMax);
-	if (pos >= BUFFER_LENGTH)
-		return;
-
-	//for (int i = iLastPos; i < pos; i++)
-	  //  wb2[i] = wb2[iLastPos];
-
-	wb2[pos] = (b & 16) ? 0x20 : 0xe0;
-	iLastPos = pos;
-}
-
-void CALLBACK TimerProc(UINT id, UINT msg, DWORD user, DWORD dw1, DWORD dw2)
-{
-	dwSec = dwEvents / (BUFFER_RATE - 1000);
-	dwEvents = 0;
-}
-
-void StartPlay()
-{
-	//waveOutPrepareHeader( hWo, &sWhdr, sizeof( WAVEHDR ) );
-	//memcpy(wb, wb2, BUFFER_LENGTH);
-	waveOutWrite(hWo, &sWhdr, sizeof(WAVEHDR));
-	//dwStartTime = GetTickCount();
-	//iLastPos = 0;
-	//memset(wb2, 0x80, BUFFER_LENGTH);
-}
-
-void StopPlay()
-{
-	//    waveOutPause( hWo );
-}
-
-UINT ThreadFunc(LPVOID lParam)
-{
-	//THREADSTRUCT* pData = (THREADSTRUCT*)lParam;
-	//DWORD dwPos;
-	return 0;
+		m_last_dsbuff_pos += dsBuffSizeForSpan;
+		if (m_last_dsbuff_pos >= m_buf_format.dwBufferBytes)
+			m_last_dsbuff_pos -= m_buf_format.dwBufferBytes;
+	}
 }
