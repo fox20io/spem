@@ -15,12 +15,12 @@ Other dependencies:
 - MFC
 
 
-I was developing this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it open source.
+I committed this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it open source.
 
 The emulator supports the following features:
 
 - 48KB of RAM
-- Snapshot file format for loading existing ZX Spectrum programs and saving the current state of the machine into this format; as well.
+- Snapshot file format for loading existing ZX Spectrum programs and saving the current state of the machine into this format, as well.
 - Reseting
 - Built in Z80 disassembler and debugger
 - Different zoom levels: 1x1, 2x2, Full screen mode
