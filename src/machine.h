@@ -23,6 +23,7 @@ enum { SPEED_REAL, SPEED_SYNCTOVIDEO, SPEED_FULL };
 #define	CPU_INT_TIMER	20
 
 void				InitContext();
+void				TermContext();
 void				Operate();
 LRESULT CALLBACK	Speed(HWND,UINT,WPARAM,LPARAM);
 void				SpeedTest();
