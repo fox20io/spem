@@ -55,7 +55,7 @@ BOOL Speaker::Initialize()
 	if (m_dsound->CreateSoundBuffer(&m_buf_format, &m_dsbuf, NULL) != DS_OK)
 		return FALSE;
 
-	uint8_t* data1, * data2;
+	uint8_t* data1, * data2;	
 	uint32_t size1, size2;
 
 	if (IDirectSoundBuffer_Lock(m_dsbuf, 0, m_buf_format.dwBufferBytes, (LPVOID*)&data1, (LPDWORD)&size1,
@@ -63,7 +63,7 @@ BOOL Speaker::Initialize()
 		return FALSE;
 
 	for (uint32_t i = 0; i < size1; i++)
-		data1[i] = 0;
+		data1[i] = 128;
 
 	IDirectSoundBuffer_Unlock(m_dsbuf, (LPVOID)data1, (DWORD)size1, (LPVOID)data2, (DWORD)size2);
 
@@ -109,7 +109,7 @@ void Speaker::CreateBuffer(int size)
 
 void Speaker::WriteNextBufferBit(BOOL pcmBit)
 {
-	if (m_buffer_pos < m_buffer_size - 1)
+	if (m_buffer_pos < m_buffer_size)
 	{
 		m_buffer[m_buffer_pos] = pcmBit;
 		m_buffer_pos++;
@@ -174,7 +174,7 @@ void Speaker::ApplyBuffer(int runtimeSpanMs)
 	if (m_dsbuf != NULL)
 	{
 		// calc the size of buffer for runtime span
-		double bytesPerMs = (double)m_format.nSamplesPerSec / BufferLengthInMs;
+		double bytesPerMs = (double)m_format.nSamplesPerSec / 1000.0;
 		DWORD dsBuffSizeForSpan = runtimeSpanMs * bytesPerMs;
 		if (dsBuffSizeForSpan > m_buf_format.dwBufferBytes)
 			dsBuffSizeForSpan = m_buf_format.dwBufferBytes;
@@ -184,7 +184,7 @@ void Speaker::ApplyBuffer(int runtimeSpanMs)
 		int stepInBuff = m_buffer_size / dsBuffSizeForSpan;
 		for (int i = 0, j = 0; i < dsBuffSizeForSpan; i ++)
 		{
-			soundData[i] = m_buffer[j] ? 50 : 0;
+			soundData[i] = m_buffer[j] ? 200 : 56;
 			j += stepInBuff;
 		}
 
@@ -196,6 +196,8 @@ void Speaker::ApplyBuffer(int runtimeSpanMs)
 		}
 
 		AppWriteDataToBuffer(m_dsbuf, m_last_dsbuff_pos, soundData, dsBuffSizeForSpan);
+
+		delete[] soundData;
 
 		m_last_dsbuff_pos += dsBuffSizeForSpan;
 		if (m_last_dsbuff_pos >= m_buf_format.dwBufferBytes)

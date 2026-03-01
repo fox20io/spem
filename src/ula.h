@@ -24,6 +24,9 @@ typedef struct _KEYMATRIX
 
 #define VIDEO_FLASH_RATE	12
 #define DI_VERSION			0x0300
+#define BORDER_PORT			0xFE
+#define SCREEN_BITMAP_SIZE  6144
+#define VIDEO_MEM_OFFSET    0x4000
 
 BOOL	InitDD();
 BOOL	InitDI();

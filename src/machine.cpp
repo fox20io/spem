@@ -35,9 +35,9 @@ extern HINSTANCE hInst;
 void InitContext()
 {
 	//	Allocating the memory and periphery space for the ZX Spectrum
-	pMem = new BYTE[0x10000];
-	pInp = new BYTE[0x100];
-	pOutp = new BYTE[0x100];
+	pMem = new BYTE[0x10000]();
+	pInp = new BYTE[0x100]();
+	pOutp = new BYTE[0x100]();
 
 	// CPU initialization
 	INITCPU iCPU;
@@ -48,7 +48,7 @@ void InitContext()
 
 	Cpu.SetCPUProp(iCPU);
 
-	pVMem = pMem + 0x4000;
+	pVMem = pMem + VIDEO_MEM_OFFSET;
 
 	// Line address cache generation
 	BuildAccelTables();
@@ -74,17 +74,41 @@ void InitContext()
 		HANDLE hMem = ::LoadResource(hInst, hrc);
 		LPVOID lpRom = ::LockResource(hMem);
 		//DWORD dwSize = ::SizeofResource( hInst, hrc );
-		//ASSERT( dwSize == 0x4000 );
-		memcpy(pMem, lpRom, 0x4000);
+		//ASSERT( dwSize == VIDEO_MEM_OFFSET );
+		memcpy(pMem, lpRom, VIDEO_MEM_OFFSET);
 	}
 
 	RandomMemory();
 	Cpu.Reset();
 
-	gl_ThreadData.lpSpeaker = (pOutp + 0xfe);
+	gl_ThreadData.lpSpeaker = (pOutp + BORDER_PORT);
 	//    AfxBeginThread( ThreadFunc, (LPVOID)&gl_ThreadData );
 
 	GL_InstructionsPerEmulatorLoop = ((double)CPU_INT_TIMER / 1000.0) / (CPU_AVG_MCYCLES / (double)CPU_FREQUENCY_HZ);
+}
+
+//
+// Cleans up allocated memory and resources
+//
+void TermContext()
+{
+	if (pMem != NULL)
+	{
+		delete[] pMem;
+		pMem = NULL;
+	}
+
+	if (pInp != NULL)
+	{
+		delete[] pInp;
+		pInp = NULL;
+	}
+
+	if (pOutp != NULL)
+	{
+		delete[] pOutp;
+		pOutp = NULL;
+	}
 }
 
 //
@@ -93,7 +117,7 @@ void InitContext()
 //
 void Operate()
 {
-	static DWORD lTC_df = 0;
+	static ULONGLONG lTC_df = 0;
 	static BOOL divider = FALSE;
 
 	switch (dSpeed)
@@ -102,7 +126,7 @@ void Operate()
 	{
 		DWORD tTC;
 
-		tTC = GetTickCount();
+		tTC = GetTickCount64();
 		if ((tTC - lTC_df) >= CPU_INT_TIMER)
 		{
 			lTC_df = tTC;
@@ -127,10 +151,10 @@ void Operate()
 						if ((rows >> i) & 1)
 							col |= KeyMatrix[i];
 
-					*(pInp + 0xfe) = ~col;
+					*(pInp + BORDER_PORT) = ~col;
 				}
 
-				ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
+				ZxSpeaker.WriteNextBufferBit(*(pOutp + BORDER_PORT) & 16 ? TRUE : FALSE);
 			}
 
 			ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
@@ -172,10 +196,10 @@ void Operate()
 					if ((rows >> i) & 1)
 						col |= KeyMatrix[i];
 
-				*(pInp + 0xfe) = ~col;
+				*(pInp + BORDER_PORT) = ~col;
 			}
 
-			ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
+			ZxSpeaker.WriteNextBufferBit(*(pOutp + BORDER_PORT) & 16 ? TRUE : FALSE);
 		}
 
 		ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
@@ -214,17 +238,15 @@ void Operate()
 					if ((rows >> i) & 1)
 						col |= KeyMatrix[i];
 
-				*(pInp + 0xfe) = ~col;
+				*(pInp + BORDER_PORT) = ~col;
 			}
 
-			ZxSpeaker.WriteNextBufferBit(*(pOutp + 0xfe) & 16 ? TRUE : FALSE);
+			ZxSpeaker.WriteNextBufferBit(*(pOutp + BORDER_PORT) & 16 ? TRUE : FALSE);
 		}
 
 		ZxSpeaker.ApplyBuffer(CPU_INT_TIMER);
 
-		DWORD tTC;
-
-		tTC = GetTickCount();
+		ULONGLONG tTC = GetTickCount64();
 
 		if ((tTC - lTC_df) >= CPU_INT_TIMER)
 		{
@@ -268,16 +290,16 @@ void RandomMemory()
 
 void SpeedTest()
 {
-	DWORD t1;
-	DWORD t2;
+	ULONGLONG t1;
+	ULONGLONG t2;
 	TCHAR sBuff[100];
 
-	t1 = GetTickCount();
+	t1 = GetTickCount64();
 
 	for (int i = 0; i < NUMS; i++)
 		lpVideoFunc();
 
-	t2 = GetTickCount();
+	t2 = GetTickCount64();
 
 	sprintf(sBuff, _T("The refresh rate is: %.2f fps"),
 		float(NUMS * 1000) / float(t2 - t1));

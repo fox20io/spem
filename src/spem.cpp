@@ -45,6 +45,7 @@ BOOL	fEnableRun = TRUE;
 BOOL	fBorder = TRUE;
 BOOL	fKeyInfo = FALSE;
 BOOL	isSound = TRUE;
+int		PreviousWindowedMode = DMODE_1X;		// Remember windowed mode before fullscreen
 
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -62,7 +63,7 @@ void				SetWindowTitle(CString);
 void				SetSoundState();
 
 //
-//	Enty point of the application
+//	Entry point of the application
 //
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -106,6 +107,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	TermDD();
 	TermDI();
+	TermContext();
 
 	if (isSound)
 	{
@@ -231,6 +233,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_ENTERMENULOOP:
+		if (pDIk)
+			pDIk->Unacquire();
 		if (isSound)
 			ZxSpeaker.Stop();
 		break;
@@ -238,6 +242,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_EXITMENULOOP:
 		if (isSound)
 			ZxSpeaker.Play();
+		if (pDIk)
+			pDIk->Acquire();
 		break;
 
 	case WM_SETFOCUS:
@@ -296,7 +302,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case ID_TOGGLE_FULLSCREEN:
-				SetMagnify(fDisplayFullScreen ? DMODE_1X : DMODE_FULLSCREEN);
+				SetMagnify(fDisplayFullScreen ? PreviousWindowedMode : DMODE_FULLSCREEN);
 				break;
 
 			case ID_OPTIONS_VIEW_BORDER:
@@ -322,6 +328,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case ID_FILE_SAVE:
+				SaveSnapshot();
+				break;
+
+			case ID_FILE_SAVEAS:
 				SaveSnapshot();
 				break;
 
@@ -380,15 +390,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ABOUT:
+				if (pDIk)
+					pDIk->Unacquire();
+
 				DialogBox(hInst, (LPCTSTR)IDD_ABOUTBOX, hWnd, (DLGPROC)AboutWndProc);
+
+				if (pDIk)
+					pDIk->Acquire();
 				break;
 
 			case ID_HELP_DESC:
 			{
 				TCHAR str[MAX_LOADSTRING + 8];
 
-				strcpy(str, szCurrentDir);
-				strcat(str, _T("\\Spem.hlp"));
+				_tcscpy_s(str, szCurrentDir);
+				_tcscat_s(str, _T("\\Spem.hlp"));
 				WinHelp(hMainWnd, str, HELP_FINDER, 0);
 				break;
 			}
@@ -417,6 +433,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		TermDD();
 		TermDI();
+		TermContext();
 		if (isSound)
 		{
 			ZxSpeaker.Stop();
@@ -457,6 +474,12 @@ LRESULT CALLBACK AboutWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 void SetMagnify(int value)
 {
+	// Save current windowed mode before entering fullscreen
+	if (value == DMODE_FULLSCREEN && !fDisplayFullScreen)
+	{
+		PreviousWindowedMode = (DisplayMagnify == 1) ? DMODE_1X : DMODE_2X;
+	}
+
 	if (value == DMODE_FULLSCREEN)
 		lpVideoFunc = VideoFullScreen;
 	else
@@ -468,20 +491,24 @@ void SetMagnify(int value)
 	SetMenu(hMainWnd, fDisplayFullScreen ? 0 :
 		LoadMenu(hInst, MAKEINTRESOURCE(IDC_SAMPLE)));
 
-	MENUITEMINFO minf;
-	minf.cbSize = sizeof(MENUITEMINFO);
-	minf.fMask = MIIM_STATE;
+	// Only update menu items if we have a valid menu (not in fullscreen mode)
+	if (!fDisplayFullScreen)
+	{
+		MENUITEMINFO minf;
+		minf.cbSize = sizeof(MENUITEMINFO);
+		minf.fMask = MIIM_STATE;
 
-	minf.fState = (value == DMODE_1X) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_1X1, FALSE, &minf);
-	minf.fState = (value == DMODE_2X) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_2X2, FALSE, &minf);
+		minf.fState = (value == DMODE_1X) ? MFS_CHECKED : MFS_UNCHECKED;
+		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_1X1, FALSE, &minf);
+		minf.fState = (value == DMODE_2X) ? MFS_CHECKED : MFS_UNCHECKED;
+		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_2X2, FALSE, &minf);
 
-	minf.fState = (value == DMODE_FULLSCREEN) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_FULLSCREEN, FALSE, &minf);
+		minf.fState = (value == DMODE_FULLSCREEN) ? MFS_CHECKED : MFS_UNCHECKED;
+		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_FULLSCREEN, FALSE, &minf);
 
-	minf.fState = (fBorder) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_BORDER, FALSE, &minf);
+		minf.fState = (fBorder) ? MFS_CHECKED : MFS_UNCHECKED;
+		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_BORDER, FALSE, &minf);
+	}
 
 	RECT rect, rdt;
 	SIZE size;
@@ -497,8 +524,21 @@ void SetMagnify(int value)
 		rect.bottom = value * 192;
 	}
 
-	if (!fDisplayFullScreen)
+	if (fDisplayFullScreen)
 	{
+		// Remove window decorations for fullscreen mode
+		SetWindowLong(hMainWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+		SetWindowLong(hMainWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
+		SetWindowPos(hMainWnd, HWND_TOPMOST, 0, 0, 
+			GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+			SWP_FRAMECHANGED);
+	}
+	else
+	{
+		// Restore window decorations for windowed mode
+		SetWindowLong(hMainWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_VISIBLE);
+		SetWindowLong(hMainWnd, GWL_EXSTYLE, 0);
+
 		HWND hdtWnd = GetDesktopWindow();
 
 		GetWindowRect(hdtWnd, &rdt);
@@ -508,7 +548,7 @@ void SetMagnify(int value)
 		size.cy = rect.bottom - rect.top;
 		SetWindowPos(hMainWnd, HWND_NOTOPMOST, (rdt.right - size.cx) / 2,
 			(rdt.bottom - size.cy) / 2, size.cx, size.cy,
-			SWP_NOOWNERZORDER);
+			SWP_FRAMECHANGED);
 	}
 
 	TermDD();
@@ -536,12 +576,19 @@ void LoadSnapshot()
 	LoadString(hInst, IDS_LOAD_FILTER, szFilter, MAX_LOADSTRING);
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
 		szFilter);
-	if (dlg.DoModal() == IDOK)
+
+	if (pDIk)
+		pDIk->Unacquire();
+
+	BOOL dlgResult = (dlg.DoModal() == IDOK);
+
+	if (pDIk)
+		pDIk->Acquire();
+
+	if (dlgResult)
 	{
 		CString s, stitle;
 		s = dlg.m_pOFN->lpstrFile;
-		SetWindowTitle(dlg.GetFileName());
-
 		FILE* fp;
 		fp = fopen(LPCTSTR(s), _T("rb"));
 
@@ -597,10 +644,10 @@ void LoadSnapshot()
 		Cpu.m_IM = fgetc(fp);
 
 		// A keret színe
-		*(pOutp + 0xfe) = fgetc(fp);
-		fread((pMem + 0x4000), 49152, 1, fp);
+		*(pOutp + BORDER_PORT) = fgetc(fp);
+		fread((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
 
-		// The value of the PC register has been stacked before save; therefore, it can be easely read
+		// The value of the PC register has been stacked before save; therefore, it can be easily read
 		// from the stack at this point.
 		r->PC = *(pMem + (r->SP));
 		r->SP++;
@@ -608,6 +655,8 @@ void LoadSnapshot()
 		r->SP++;
 
 		fclose(fp);
+
+		SetWindowTitle(dlg.GetFileName());
 	}
 
 	if (isSound)
@@ -624,12 +673,17 @@ void SaveSnapshot()
 	LoadString(hInst, IDS_SAVE_FILTER, szFilter, MAX_LOADSTRING);
 	CFileDialog dlg(FALSE, _T("sna"), _T("noname"), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter);
 
-	if (dlg.DoModal() == IDOK)
-	{
-		CString s;
-		s = dlg.GetFileName();
-		SetWindowTitle(s);
+	if (pDIk)
+		pDIk->Unacquire();
 
+	BOOL dlgResult = (dlg.DoModal() == IDOK);
+
+	if (pDIk)
+		pDIk->Acquire();
+
+	if (dlgResult)
+	{
+		CString s = dlg.GetPathName();
 		FILE* fp;
 		fp = fopen(LPCTSTR(s), _T("wb"));
 		if (fp == NULL)
@@ -682,11 +736,14 @@ void SaveSnapshot()
 		r->SP = sp;
 
 		fputc(Cpu.m_IM, fp);
+
 		// Colour of the border
-		fputc(*(pOutp + 0xfe), fp);
-		fwrite((pMem + 0x4000), 49152, 1, fp);
+		fputc(*(pOutp + BORDER_PORT), fp);
+		fwrite((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
 
 		fclose(fp);
+
+		SetWindowTitle(dlg.GetFileName());
 	}
 
 	if (isSound)

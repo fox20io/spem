@@ -49,6 +49,8 @@ CLRS SpecClrsRGB[16] =
 	{ 255, 255, 255 }
 };
 
+const int PALETTE_OFFSET = 50;
+
 // 16-bit array of Spectrum colours.
 WORD	SpecClrs16[16];
 
@@ -58,6 +60,8 @@ WORD					AddrLine[2048];
 BYTE					BitCount;
 int						DisplayMagnify = DMODE_1X;
 BOOL					fDisplayFullScreen = FALSE;
+int						FullScreenWidth = 320;
+int						FullScreenHeight = 200;
 int						FlashSpeed = 10;
 BOOL					fFlashFlag = FALSE;
 int						FlashCounter = 0;
@@ -71,8 +75,8 @@ IDirectDrawPalette* pDDPalette = NULL;
 IDirectDrawClipper* pDDClipper = NULL;
 
 // DirectInput objects
-IDirectInput8* pDI;
-LPDIRECTINPUTDEVICE8 pDIk;
+IDirectInput8* pDI = NULL;
+LPDIRECTINPUTDEVICE8 pDIk = NULL;
 
 // DirectSound objects
 LPDIRECTSOUND			pDS = NULL;
@@ -123,7 +127,7 @@ void BuildAccelTables()
 
 	for (y = 0; y < 64; y++)
 		for (int i = 0; i < 32; i++)
-			AddrLine[LineAddr[i] + i] = 256 * y + i * 8;
+			AddrLine[LineAddr[y] + i] = 256 * y + i * 8;
 }
 
 //
@@ -217,7 +221,33 @@ BOOL InitDD()
 	if (fDisplayFullScreen)
 	{
 		hr = pDD->SetDisplayMode(320, 200, 8);
-		// CR: hr isn't checked!?
+		if (hr == DD_OK)
+		{
+			FullScreenWidth = 320;
+			FullScreenHeight = 200;
+		}
+		else
+		{
+			// Try 640x480 if 320x200 is not supported
+			hr = pDD->SetDisplayMode(640, 480, 8);
+			if (hr == DD_OK)
+			{
+				FullScreenWidth = 640;
+				FullScreenHeight = 480;
+			}
+			else
+			{
+				// Try 800x600 as last resort
+				hr = pDD->SetDisplayMode(800, 600, 8);
+				if (hr == DD_OK)
+				{
+					FullScreenWidth = 800;
+					FullScreenHeight = 600;
+				}
+				else
+					return FALSE;
+			}
+		}
 	}
 
 	DDSURFACEDESC ddsd;
@@ -251,7 +281,7 @@ BOOL InitDD()
 	if (BitCount < 8)
 	{
 		Failure(IDS_FAIL_FEWBITCOUNT);
-		PostQuitMessage(WM_DESTROY);
+		PostQuitMessage(-1);
 	}
 
 	//	Build SpecClrs16 colour table for 65536 colour screen
@@ -305,10 +335,22 @@ BOOL InitDD()
 //
 void TermDD()
 {
+	// If in fullscreen mode, restore display mode first
+	if (pDD)
+	{
+		// Restore display to original settings
+		pDD->RestoreDisplayMode();
+		// Restore cooperative level to normal
+		pDD->SetCooperativeLevel(hMainWnd, DDSCL_NORMAL);
+	}
+
+	// Release surfaces and dependent objects
 	SAFERELEASE(pDDClipper);
-	SAFERELEASE(pDDSurface);
 	SAFERELEASE(pDDSBack);
 	SAFERELEASE(pDDPalette);
+	SAFERELEASE(pDDSurface);
+
+	// Release main DirectDraw object
 	SAFERELEASE(pDD);
 }
 
@@ -334,7 +376,11 @@ void DrawScreen()
 	}
 
 	hr = pDDSurface->Blt(&rect, pDDSBack, 0, 0, NULL);
-	// CR: hr isn't checked!?
+	if (hr == DDERR_SURFACELOST)
+	{
+		pDDSurface->Restore();
+		pDDSBack->Restore();
+	}
 }
 
 //
@@ -386,7 +432,7 @@ void Video()
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + 0xfe) & 7;
+	border = *(pOutp + BORDER_PORT) & 7;
 
 	for (BYTE ActLine = 0; ActLine < 240; ActLine++)
 	{
@@ -397,13 +443,13 @@ void Video()
 			switch (BitCount)
 			{
 			case 8:
-				*pdd = 50 + border;
+				*pdd = PALETTE_OFFSET + border;
 				pdd += 1;
 				break;
 
 			case 16:
 				*pdd = SpecClrs16[border] & 0x00ff;
-				*(pdd + 1) = SpecClrs16[border] / 256;
+				*(pdd + 1) = SpecClrs16[border] >> 8;
 				pdd += 2;
 				break;
 
@@ -419,13 +465,14 @@ void Video()
 				*(pdd + 1) = SpecClrsRGB[border].g;
 				*(pdd + 2) = SpecClrsRGB[border].r;
 				pdd += 4;
+				break;
 			}
 		}
 
 		if (ActLine >= 24 && ActLine < 216)
 		{
 			pvm = pVMem + LineAddr[ActLine - 24];
-			pam = pVMem + 6144 + ((ActLine - 24) >> 3) * 32;
+			pam = pVMem + SCREEN_BITMAP_SIZE + ((ActLine - 24) >> 3) * 32;
 
 			for (j = 0; j < 256; j += 8)
 			{
@@ -450,7 +497,7 @@ void Video()
 
 					case 16:
 						*pdd = SpecClrs16[c] & 0x00ff;
-						*(pdd + 1) = SpecClrs16[c] / 256;
+						*(pdd + 1) = SpecClrs16[c] >> 8;
 						pdd += 2;
 						break;
 
@@ -466,6 +513,7 @@ void Video()
 						*(pdd + 1) = SpecClrsRGB[c].g;
 						*(pdd + 2) = SpecClrsRGB[c].r;
 						pdd += 4;
+						break;
 					}
 				}
 				pam++;
@@ -478,13 +526,13 @@ void Video()
 				switch (BitCount)
 				{
 				case 8:
-					*pdd = 50 + border;
+					*pdd = PALETTE_OFFSET + border;
 					pdd += 1;
 					break;
 
 				case 16:
 					*pdd = SpecClrs16[border] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[border] / 256;
+					*(pdd + 1) = SpecClrs16[border] >> 8;
 					pdd += 2;
 					break;
 
@@ -500,6 +548,7 @@ void Video()
 					*(pdd + 1) = SpecClrsRGB[border].g;
 					*(pdd + 2) = SpecClrsRGB[border].r;
 					pdd += 4;
+					break;
 				}
 			}
 		}
@@ -509,13 +558,13 @@ void Video()
 			switch (BitCount)
 			{
 			case 8:
-				*pdd = 50 + border;
+				*pdd = PALETTE_OFFSET + border;
 				pdd += 1;
 				break;
 
 			case 16:
 				*pdd = SpecClrs16[border] & 0x00ff;
-				*(pdd + 1) = SpecClrs16[border] / 256;
+				*(pdd + 1) = SpecClrs16[border] >> 8;
 				pdd += 2;
 				break;
 
@@ -531,6 +580,7 @@ void Video()
 				*(pdd + 1) = SpecClrsRGB[border].g;
 				*(pdd + 2) = SpecClrsRGB[border].r;
 				pdd += 4;
+				break;
 			}
 		}
 	}
@@ -565,14 +615,14 @@ void VideoNoBorder()
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + 0xfe) & 7;
+	border = *(pOutp + BORDER_PORT) & 7;
 
 	for (BYTE ActLine = 0; ActLine < 192; ActLine++)
 	{
 		pdd = (BYTE*)ddsd.lpSurface + ddsd.lPitch * ActLine;
 
 		pvm = pVMem + LineAddr[ActLine];
-		pam = pVMem + 6144 + (ActLine >> 3) * 32;
+		pam = pVMem + SCREEN_BITMAP_SIZE + (ActLine >> 3) * 32;
 		for (j = 0; j < 256; j += 8)
 		{
 			for (k = 0; k < 8; k++)
@@ -596,7 +646,7 @@ void VideoNoBorder()
 
 				case 16:
 					*pdd = SpecClrs16[c] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[c] / 256;
+					*(pdd + 1) = SpecClrs16[c] >> 8;
 					pdd += 2;
 					break;
 
@@ -612,6 +662,7 @@ void VideoNoBorder()
 					*(pdd + 1) = SpecClrsRGB[c].g;
 					*(pdd + 2) = SpecClrsRGB[c].r;
 					pdd += 4;
+					break;
 				}
 			}
 			pam++;
@@ -648,55 +699,182 @@ void VideoFullScreen()
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + 0xfe) & 7;
+	border = *(pOutp + BORDER_PORT) & 7;
 
-	for (BYTE ActLine = 0; ActLine < 200; ActLine++)
+	// Calculate scaling factors
+	int scaleX = FullScreenWidth / 320;
+	int scaleY = FullScreenHeight / 200;
+	if (scaleX < 1) scaleX = 1;
+	if (scaleY < 1) scaleY = 1;
+
+	// Calculate vertical offset to center the content
+	int contentHeight = 200 * scaleY;
+	int verticalOffset = (FullScreenHeight - contentHeight) / 2;
+
+	for (int ActLine = 0; ActLine < 200; ActLine++)
 	{
-		pdd = (BYTE*)ddsd.lpSurface + ddsd.lPitch * ActLine;
+		int baseY = verticalOffset + ActLine * scaleY;
 
-		for (j = 0; j < 32; j++)
+		// Draw each scanline scaleY times for vertical scaling
+		for (int sy = 0; sy < scaleY; sy++)
 		{
-			*pdd = 50 + border;
-			pdd++;
-		}
+			int screenLine = baseY + sy;
+			if (screenLine >= FullScreenHeight) break;
 
-		if (ActLine >= 4 && ActLine < 196)
-		{
-			pvm = pVMem + LineAddr[ActLine - 4];
-			pam = pVMem + 6144 + ((ActLine - 4) >> 3) * 32;
+			pdd = (BYTE*)ddsd.lpSurface + ddsd.lPitch * screenLine;
 
-			for (j = 0; j < 256; j += 8)
+			// Left border (32 pixels scaled)
+			for (j = 0; j < 32 * scaleX; j++)
 			{
-				for (k = 0; k < 8; k++)
+				switch (BitCount)
 				{
-					bit = ((*(pvm + (j >> 3)) << k) & 0x80) ? TRUE : FALSE;
+				case 8:
+					*pdd = PALETTE_OFFSET + border;
+					pdd += 1;
+					break;
 
-					if (fFlashFlag && (*pam & 0x80))
-						bit = !bit;
+				case 16:
+					*pdd = SpecClrs16[border] & 0x00ff;
+					*(pdd + 1) = SpecClrs16[border] >> 8;
+					pdd += 2;
+					break;
 
-					c = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
-					if (*pam & 0x40)
-						c += 8;
+				case 24:
+					*pdd = SpecClrsRGB[border].b;
+					*(pdd + 1) = SpecClrsRGB[border].g;
+					*(pdd + 2) = SpecClrsRGB[border].r;
+					pdd += 3;
+					break;
 
-					*pdd = 50 + c;
-					pdd++;
+				case 32:
+					*pdd = SpecClrsRGB[border].b;
+					*(pdd + 1) = SpecClrsRGB[border].g;
+					*(pdd + 2) = SpecClrsRGB[border].r;
+					pdd += 4;
+					break;
 				}
-				pam++;
 			}
-		}
-		else
-		{
-			for (j = 0; j < 256; j++)
-			{
-				*pdd = 50 + border;
-				pdd++;
-			}
-		}
 
-		for (j = 0; j < 32; j++)
-		{
-			*pdd = 50 + border;
-			pdd++;
+			if (ActLine >= 4 && ActLine < 196)
+			{
+				pvm = pVMem + LineAddr[ActLine - 4];
+				pam = pVMem + SCREEN_BITMAP_SIZE + ((ActLine - 4) >> 3) * 32;
+
+				// Main screen area (256 pixels scaled)
+				for (j = 0; j < 256; j += 8)
+				{
+					for (k = 0; k < 8; k++)
+					{
+						bit = ((*(pvm + (j >> 3)) << k) & 0x80) ? TRUE : FALSE;
+
+						if (fFlashFlag && (*pam & 0x80))
+							bit = !bit;
+
+						c = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
+						if (*pam & 0x40)
+							c += 8;
+
+						// Write pixel scaleX times for horizontal scaling
+						for (int sx = 0; sx < scaleX; sx++)
+						{
+							switch (BitCount)
+							{
+							case 8:
+								*pdd = 50 + c;
+								pdd += 1;
+								break;
+
+							case 16:
+								*pdd = SpecClrs16[c] & 0x00ff;
+								*(pdd + 1) = SpecClrs16[c] >> 8;
+								pdd += 2;
+								break;
+
+							case 24:
+								*pdd = SpecClrsRGB[c].b;
+								*(pdd + 1) = SpecClrsRGB[c].g;
+								*(pdd + 2) = SpecClrsRGB[c].r;
+								pdd += 3;
+								break;
+
+							case 32:
+								*pdd = SpecClrsRGB[c].b;
+								*(pdd + 1) = SpecClrsRGB[c].g;
+								*(pdd + 2) = SpecClrsRGB[c].r;
+								pdd += 4;
+								break;
+							}
+						}
+					}
+					pam++;
+				}
+			}
+			else
+			{
+				// Top/bottom border area (256 pixels scaled)
+				for (j = 0; j < 256 * scaleX; j++)
+				{
+					switch (BitCount)
+					{
+					case 8:
+						*pdd = PALETTE_OFFSET + border;
+						pdd += 1;
+						break;
+
+					case 16:
+						*pdd = SpecClrs16[border] & 0x00ff;
+						*(pdd + 1) = SpecClrs16[border] >> 8;
+						pdd += 2;
+						break;
+
+					case 24:
+						*pdd = SpecClrsRGB[border].b;
+						*(pdd + 1) = SpecClrsRGB[border].g;
+						*(pdd + 2) = SpecClrsRGB[border].r;
+						pdd += 3;
+						break;
+
+					case 32:
+						*pdd = SpecClrsRGB[border].b;
+						*(pdd + 1) = SpecClrsRGB[border].g;
+						*(pdd + 2) = SpecClrsRGB[border].r;
+						pdd += 4;
+						break;
+					}
+				}
+			}
+
+			// Right border (32 pixels scaled)
+			for (j = 0; j < 32 * scaleX; j++)
+			{
+				switch (BitCount)
+				{
+				case 8:
+					*pdd = PALETTE_OFFSET + border;
+					pdd += 1;
+					break;
+
+				case 16:
+					*pdd = SpecClrs16[border] & 0x00ff;
+					*(pdd + 1) = SpecClrs16[border] >> 8;
+					pdd += 2;
+					break;
+
+				case 24:
+					*pdd = SpecClrsRGB[border].b;
+					*(pdd + 1) = SpecClrsRGB[border].g;
+					*(pdd + 2) = SpecClrsRGB[border].r;
+					pdd += 3;
+					break;
+
+				case 32:
+					*pdd = SpecClrsRGB[border].b;
+					*(pdd + 1) = SpecClrsRGB[border].g;
+					*(pdd + 2) = SpecClrsRGB[border].r;
+					pdd += 4;
+					break;
+				}
+			}
 		}
 	}
 
