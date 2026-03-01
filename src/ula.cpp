@@ -497,7 +497,7 @@ void Video()
 
 					case 16:
 						*pdd = SpecClrs16[c] & 0x00ff;
-						*(pdd + 1) = SpecClrs16[c] > 8;
+						*(pdd + 1) = SpecClrs16[c] >> 8;
 						pdd += 2;
 						break;
 
