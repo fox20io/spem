@@ -15,18 +15,21 @@ class Speaker
 {
 protected:
 	// DS buffer management members
-	LPDIRECTSOUND8 m_dsound;
-	WAVEFORMATEX m_format;
-	LPDIRECTSOUNDBUFFER m_dsbuf;
-	DSBUFFERDESC m_buf_format;
+	LPDIRECTSOUND8      m_dsound = NULL;
+	WAVEFORMATEX        m_format;
+	LPDIRECTSOUNDBUFFER m_dsbuf = NULL;
+	DSBUFFERDESC        m_buf_format;
 
-	const double BufferLengthInMs = 310.0;
+	const double        BufferLengthInMs = 310.0;
+	const BYTE          MinPcmValue = 56;
+	const BYTE          MaxPcmValue = 200;
+
 	
 	// virtual buffer management members
-	LPBYTE m_buffer = NULL;
-	int m_buffer_size = 0;
-	int m_buffer_pos = 0;
-	int m_last_dsbuff_pos = 0;
+	LPBYTE              m_buffer = NULL;
+	int                 m_buffer_size = 0;
+	int                 m_buffer_pos = 0;
+	int                 m_last_dsbuff_pos = 0;
 
 public:
 	Speaker();

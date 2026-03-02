@@ -72,15 +72,21 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	HACCEL hAccelTable;
 	InitContext();
 
+	// Initialize Common Controls for SysLink and other controls
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icex.dwICC = ICC_LINK_CLASS | ICC_STANDARD_CLASSES;
+	InitCommonControlsEx(&icex);
+
 	// Initialize global strings
 	::LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	::LoadString(hInstance, IDC_SAMPLE, szWindowClass, MAX_LOADSTRING);
 	::GetCurrentDirectory(MAX_LOADSTRING, szCurrentDir);
 
-	MyRegisterClass(hInstance);
+	::MyRegisterClass(hInstance);
 
 	// Application initialization
-	if (!InitInstance(hInstance, nCmdShow))
+	if (!::InitInstance(hInstance, nCmdShow))
 		return FALSE;
 
 	ZxSpeaker.Initialize();
@@ -95,10 +101,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			if (msg.message == WM_QUIT)
 				break;
 
-			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+			if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
 			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				::TranslateMessage(&msg);
+				::DispatchMessage(&msg);
 			}
 		}
 		else if (fEnableRun)
@@ -150,7 +156,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, (LPCTSTR)IDI_SMALL);
 
-	return RegisterClassEx(&wcex);
+	return ::RegisterClassEx(&wcex);
 }
 
 //
@@ -169,7 +175,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	hInst = hInstance; // Store instance handle in our global variable
 
-	hWnd = CreateWindow(szWindowClass, szTitle,
+	hWnd = ::CreateWindow(szWindowClass, szTitle,
 		WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU,
 		CW_USEDEFAULT, 0, 0, 0, NULL, NULL, hInstance, NULL);
 
@@ -182,12 +188,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	// apperas in the center of the screen.
 	SetMagnify(DMODE_2X);
 
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
+	::ShowWindow(hWnd, nCmdShow);
+	::UpdateWindow(hWnd);
 
 	if (InitDI())
 	{
-		Failure(IDS_FAIL_INITDI);
+		::Failure(IDS_FAIL_INITDI);
 		return FALSE;
 	}
 
@@ -227,9 +233,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SETCURSOR:
 		if (fDisplayFullScreen)
-			SetCursor(NULL);
+			::SetCursor(NULL);
 		else
-			SetCursor(LoadCursor(NULL, IDC_ARROW));
+			::SetCursor(LoadCursor(NULL, IDC_ARROW));
 		break;
 
 	case WM_ENTERMENULOOP:
@@ -275,7 +281,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_FILE_RESET:
 				RandomMemory();
 				Cpu.Reset();
-				SetWindowTitle(_T(""));
+				::SetWindowTitle(_T(""));
 				break;
 
 			case ID_FILE_LOAD:
@@ -311,7 +317,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case ID_FOCUSTOKINF:
 				if (fKeyInfo && !fDisplayFullScreen)
-					SetFocus(hKeyWnd);
+					::SetFocus(hKeyWnd);
 				break;
 
 			case ID_HELP_DESC:
@@ -338,7 +344,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_FILE_RESET:
 				RandomMemory();
 				Cpu.Reset();
-				SetWindowTitle(_T(""));
+				::SetWindowTitle(_T(""));
 				break;
 
 			case ID_FILE_DEBUG:
@@ -405,7 +411,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				_tcscpy_s(str, szCurrentDir);
 				_tcscat_s(str, _T("\\Spem.hlp"));
-				WinHelp(hMainWnd, str, HELP_FINDER, 0);
+				::HtmlHelp(hMainWnd, str, HH_DISPLAY_TOPIC, 0);
 				break;
 			}
 
@@ -414,7 +420,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_EXIT:
-				DestroyWindow(hWnd);
+				::DestroyWindow(hWnd);
 				break;
 
 			default:
@@ -424,10 +430,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
+		hdc = ::BeginPaint(hWnd, &ps);
 		if (pDDSBack)
 			DrawScreen();
-		EndPaint(hWnd, &ps);
+		::EndPaint(hWnd, &ps);
 		break;
 
 	case WM_DESTROY:
@@ -438,7 +444,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			ZxSpeaker.Stop();
 		}
-		PostQuitMessage(0);
+		::PostQuitMessage(0);
 		break;
 
 	case MM_WOM_DONE:
@@ -446,7 +452,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
+		return ::DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
 	return 0;
@@ -460,10 +466,23 @@ LRESULT CALLBACK AboutWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	case WM_INITDIALOG:
 		return TRUE;
 
+	case WM_NOTIFY:
+	{
+		LPNMHDR pnmh = (LPNMHDR)lParam;
+		if (pnmh->code == NM_CLICK || pnmh->code == NM_RETURN)
+		{
+			PNMLINK pNMLink = (PNMLINK)lParam;
+			LITEM item = pNMLink->item;
+
+			::ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+		}
+		return FALSE;
+	}
+
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 		{
-			EndDialog(hDlg, LOWORD(wParam));
+			::EndDialog(hDlg, LOWORD(wParam));
 			return TRUE;
 		}
 		break;
@@ -488,7 +507,7 @@ void SetMagnify(int value)
 	DisplayMagnify = (value == DMODE_1X) ? 1 : 2;
 	fDisplayFullScreen = (value == DMODE_FULLSCREEN) ? TRUE : FALSE;
 
-	SetMenu(hMainWnd, fDisplayFullScreen ? 0 :
+	::SetMenu(hMainWnd, fDisplayFullScreen ? 0 :
 		LoadMenu(hInst, MAKEINTRESOURCE(IDC_SAMPLE)));
 
 	// Only update menu items if we have a valid menu (not in fullscreen mode)
@@ -499,15 +518,15 @@ void SetMagnify(int value)
 		minf.fMask = MIIM_STATE;
 
 		minf.fState = (value == DMODE_1X) ? MFS_CHECKED : MFS_UNCHECKED;
-		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_1X1, FALSE, &minf);
+		::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_VIEW_1X1, FALSE, &minf);
 		minf.fState = (value == DMODE_2X) ? MFS_CHECKED : MFS_UNCHECKED;
-		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_2X2, FALSE, &minf);
+		::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_VIEW_2X2, FALSE, &minf);
 
 		minf.fState = (value == DMODE_FULLSCREEN) ? MFS_CHECKED : MFS_UNCHECKED;
-		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_FULLSCREEN, FALSE, &minf);
+		::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_VIEW_FULLSCREEN, FALSE, &minf);
 
 		minf.fState = (fBorder) ? MFS_CHECKED : MFS_UNCHECKED;
-		SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_BORDER, FALSE, &minf);
+		::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_VIEW_BORDER, FALSE, &minf);
 	}
 
 	RECT rect, rdt;
@@ -527,26 +546,26 @@ void SetMagnify(int value)
 	if (fDisplayFullScreen)
 	{
 		// Remove window decorations for fullscreen mode
-		SetWindowLong(hMainWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-		SetWindowLong(hMainWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
-		SetWindowPos(hMainWnd, HWND_TOPMOST, 0, 0, 
-			GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+		::SetWindowLong(hMainWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+		::SetWindowLong(hMainWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
+		::SetWindowPos(hMainWnd, HWND_TOPMOST, 0, 0,
+			::GetSystemMetrics(SM_CXSCREEN), ::GetSystemMetrics(SM_CYSCREEN),
 			SWP_FRAMECHANGED);
 	}
 	else
 	{
 		// Restore window decorations for windowed mode
-		SetWindowLong(hMainWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_VISIBLE);
-		SetWindowLong(hMainWnd, GWL_EXSTYLE, 0);
+		::SetWindowLong(hMainWnd, GWL_STYLE, WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_VISIBLE);
+		::SetWindowLong(hMainWnd, GWL_EXSTYLE, 0);
 
-		HWND hdtWnd = GetDesktopWindow();
+		HWND hdtWnd = ::GetDesktopWindow();
 
-		GetWindowRect(hdtWnd, &rdt);
-		AdjustWindowRectEx(&rect, GetWindowLong(hMainWnd, GWL_STYLE), TRUE,
-			GetWindowLong(hMainWnd, GWL_EXSTYLE));
+		::GetWindowRect(hdtWnd, &rdt);
+		::AdjustWindowRectEx(&rect, ::GetWindowLong(hMainWnd, GWL_STYLE), TRUE,
+			::GetWindowLong(hMainWnd, GWL_EXSTYLE));
 		size.cx = rect.right - rect.left;
 		size.cy = rect.bottom - rect.top;
-		SetWindowPos(hMainWnd, HWND_NOTOPMOST, (rdt.right - size.cx) / 2,
+		::SetWindowPos(hMainWnd, HWND_NOTOPMOST, (rdt.right - size.cx) / 2,
 			(rdt.bottom - size.cy) / 2, size.cx, size.cy,
 			SWP_FRAMECHANGED);
 	}
@@ -555,8 +574,8 @@ void SetMagnify(int value)
 
 	if (!InitDD())
 	{
-		Failure(IDS_FAIL_INITDD);
-		SendMessage(hMainWnd, WM_DESTROY, 0, 0);
+		::Failure(IDS_FAIL_INITDD);
+		::SendMessage(hMainWnd, WM_DESTROY, 0, 0);
 	}
 }
 
@@ -573,7 +592,7 @@ void LoadSnapshot()
 	ZxSpeaker.Stop();
 
 	TCHAR szFilter[MAX_LOADSTRING];
-	LoadString(hInst, IDS_LOAD_FILTER, szFilter, MAX_LOADSTRING);
+	::LoadString(hInst, IDS_LOAD_FILTER, szFilter, MAX_LOADSTRING);
 	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
 		szFilter);
 
@@ -590,62 +609,62 @@ void LoadSnapshot()
 		CString s, stitle;
 		s = dlg.m_pOFN->lpstrFile;
 		FILE* fp;
-		fp = fopen(LPCTSTR(s), _T("rb"));
+		fp = ::fopen(LPCTSTR(s), _T("rb"));
 
 		if (fp == NULL)
 		{
-			Failure(IDS_FAIL_LOAD);
+			::Failure(IDS_FAIL_LOAD);
 			return;
 		}
 
-		fseek(fp, 0, SEEK_END);
-		long fsize = ftell(fp);
+		::fseek(fp, 0, SEEK_END);
+		long fsize = ::ftell(fp);
 
 		if (fsize != 49179)
 		{
-			Failure(IDS_FAIL_LOADCORRUPT);
+			::Failure(IDS_FAIL_LOADCORRUPT);
 			return;
 		}
 
-		rewind(fp);
+		::rewind(fp);
 
 		REGISTERS* r = Cpu.GetRegs();
 
-		r->I = fgetc(fp);
-		r->_L = fgetc(fp);
-		r->_H = fgetc(fp);
-		r->_E = fgetc(fp);
-		r->_D = fgetc(fp);
-		r->_C = fgetc(fp);
-		r->_B = fgetc(fp);
-		r->_F = fgetc(fp);
-		r->_A = fgetc(fp);
-		r->L = fgetc(fp);
-		r->H = fgetc(fp);
-		r->E = fgetc(fp);
-		r->D = fgetc(fp);
-		r->C = fgetc(fp);
-		r->B = fgetc(fp);
-		r->IY_L = fgetc(fp);
-		r->IY_H = fgetc(fp);
-		r->IX_L = fgetc(fp);
-		r->IX_H = fgetc(fp);
+		r->I = ::fgetc(fp);
+		r->_L = ::fgetc(fp);
+		r->_H = ::fgetc(fp);
+		r->_E = ::fgetc(fp);
+		r->_D = ::fgetc(fp);
+		r->_C = ::fgetc(fp);
+		r->_B = ::fgetc(fp);
+		r->_F = ::fgetc(fp);
+		r->_A = ::fgetc(fp);
+		r->L = ::fgetc(fp);
+		r->H = ::fgetc(fp);
+		r->E = ::fgetc(fp);
+		r->D = ::fgetc(fp);
+		r->C = ::fgetc(fp);
+		r->B = ::fgetc(fp);
+		r->IY_L = ::fgetc(fp);
+		r->IY_H = ::fgetc(fp);
+		r->IX_L = ::fgetc(fp);
+		r->IX_H = ::fgetc(fp);
 
-		if (fgetc(fp) & 0x02)
+		if (::fgetc(fp) & 0x02)
 			Cpu.m_IFF1 = Cpu.m_IFF2 = TRUE;
 		else
 			Cpu.m_IFF1 = Cpu.m_IFF2 = FALSE;
 
-		r->R = fgetc(fp);
-		r->F = fgetc(fp);
-		r->A = fgetc(fp);
-		r->SP = fgetc(fp);
-		r->SP |= fgetc(fp) << 8;
-		Cpu.m_IM = fgetc(fp);
+		r->R = ::fgetc(fp);
+		r->F = ::fgetc(fp);
+		r->A = ::fgetc(fp);
+		r->SP = ::fgetc(fp);
+		r->SP |= ::fgetc(fp) << 8;
+		Cpu.m_IM = ::fgetc(fp);
 
 		// A keret színe
-		*(pOutp + BORDER_PORT) = fgetc(fp);
-		fread((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
+		*(pOutp + BORDER_PORT) = ::fgetc(fp);
+		::fread((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
 
 		// The value of the PC register has been stacked before save; therefore, it can be easily read
 		// from the stack at this point.
@@ -654,9 +673,9 @@ void LoadSnapshot()
 		r->PC |= *(pMem + (r->SP)) << 8;
 		r->SP++;
 
-		fclose(fp);
+		::fclose(fp);
 
-		SetWindowTitle(dlg.GetFileName());
+		::SetWindowTitle(dlg.GetFileName());
 	}
 
 	if (isSound)
@@ -670,7 +689,7 @@ void SaveSnapshot()
 	ZxSpeaker.Stop();
 
 	TCHAR szFilter[MAX_LOADSTRING];
-	LoadString(hInst, IDS_SAVE_FILTER, szFilter, MAX_LOADSTRING);
+	::LoadString(hInst, IDS_SAVE_FILTER, szFilter, MAX_LOADSTRING);
 	CFileDialog dlg(FALSE, _T("sna"), _T("noname"), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, szFilter);
 
 	if (pDIk)
@@ -685,44 +704,43 @@ void SaveSnapshot()
 	{
 		CString s = dlg.GetPathName();
 		FILE* fp;
-		fp = fopen(LPCTSTR(s), _T("wb"));
+		fp = ::fopen(LPCTSTR(s), _T("wb"));
 		if (fp == NULL)
 		{
-			Failure(IDS_FAIL_LOAD);
+			::Failure(IDS_FAIL_LOAD);
 			return;
 		}
 
 		REGISTERS* r = Cpu.GetRegs();
 
-		fputc(r->I, fp);
-		fputc(r->_L, fp);
-		fputc(r->_H, fp);
-		fputc(r->_E, fp);
-		fputc(r->_D, fp);
-		fputc(r->_C, fp);
-		fputc(r->_B, fp);
-		fputc(r->_F, fp);
-		fputc(r->_A, fp);
-		fputc(r->L, fp);
-		fputc(r->H, fp);
-		fputc(r->E, fp);
-		fputc(r->D, fp);
-		fputc(r->C, fp);
-		fputc(r->B, fp);
-		fputc(r->IY_L, fp);
-		fputc(r->IY_H, fp);
-		fputc(r->IX_L, fp);
-		fputc(r->IX_H, fp);
+		::fputc(r->I, fp);
+		::fputc(r->_L, fp);
+		::fputc(r->_H, fp);
+		::fputc(r->_E, fp);
+		::fputc(r->_D, fp);
+		::fputc(r->_C, fp);
+		::fputc(r->_B, fp);
+		::fputc(r->_F, fp);
+		::fputc(r->_A, fp);
+		::fputc(r->L, fp);
+		::fputc(r->H, fp);
+		::fputc(r->E, fp);
+		::fputc(r->D, fp);
+		::fputc(r->C, fp);
+		::fputc(r->B, fp);
+		::fputc(r->IY_L, fp);
+		::fputc(r->IY_H, fp);
+		::fputc(r->IX_L, fp);
+		::fputc(r->IX_H, fp);
 
 		if (Cpu.m_IFF1)
-			fputc(0x02, fp);
+			::fputc(0x02, fp);
 		else
-			fputc(0, fp);
+			::fputc(0, fp);
 
-		fputc(r->R, fp);
-		fputc(r->F, fp);
-		fputc(r->A, fp);
-
+		::fputc(r->R, fp);
+		::fputc(r->F, fp);
+		::fputc(r->A, fp);
 		// The value of the PC register has to be saved into the stack in order the preserve it for recovering the original state.
 		WORD sp = r->SP;
 
@@ -731,19 +749,18 @@ void SaveSnapshot()
 		r->SP--;
 		*(pMem + r->SP) = r->PC % 256;
 
-		fputc(r->SP % 256, fp);
-		fputc(r->SP / 256, fp);
+		::fputc(r->SP % 256, fp);
+		::fputc(r->SP / 256, fp);
 		r->SP = sp;
 
-		fputc(Cpu.m_IM, fp);
-
+		::fputc(Cpu.m_IM, fp);
 		// Colour of the border
-		fputc(*(pOutp + BORDER_PORT), fp);
-		fwrite((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
+		::fputc(*(pOutp + BORDER_PORT), fp);
+		::fwrite((pMem + VIDEO_MEM_OFFSET), 49152, 1, fp);
 
-		fclose(fp);
+		::fclose(fp);
 
-		SetWindowTitle(dlg.GetFileName());
+		::SetWindowTitle(dlg.GetFileName());
 	}
 
 	if (isSound)
@@ -757,9 +774,9 @@ void Failure(int textid)
 {
 	TCHAR szCaption[MAX_LOADSTRING];
 	TCHAR szText[MAX_LOADSTRING];
-	LoadString(hInst, IDS_APP_TITLE, szCaption, MAX_LOADSTRING);
-	LoadString(hInst, textid, szText, MAX_LOADSTRING);
-	MessageBox(hMainWnd, szText, szCaption, MB_OK | MB_ICONEXCLAMATION);
+	::LoadString(hInst, IDS_APP_TITLE, szCaption, MAX_LOADSTRING);
+	::LoadString(hInst, textid, szText, MAX_LOADSTRING);
+	::MessageBox(hMainWnd, szText, szCaption, MB_OK | MB_ICONEXCLAMATION);
 }
 
 void BeginDebug()
@@ -767,8 +784,8 @@ void BeginDebug()
 	fDebugMode = TRUE;
 	fEnableRun = FALSE;
 	HWND hWndDebug;
-	hWndDebug = CreateDialog(hInst, (LPCTSTR)IDD_DEBUG, hMainWnd, (DLGPROC)DebuggerWndProc);
-	ShowWindow(hWndDebug, SW_SHOW);
+	hWndDebug = ::CreateDialog(hInst, (LPCTSTR)IDD_DEBUG, hMainWnd, (DLGPROC)DebuggerWndProc);
+	::ShowWindow(hWndDebug, SW_SHOW);
 }
 
 //
@@ -783,9 +800,9 @@ void SetFrameFresh(BOOL value)
 	minf.fMask = MIIM_STATE;
 
 	minf.fState = value ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_INTERLACE, FALSE, &minf);
+	::SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_INTERLACE, FALSE, &minf);
 	minf.fState = value ? MFS_UNCHECKED : MFS_CHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_NONINTERLACE, FALSE, &minf);
+	::SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_VIEW_NONINTERLACE, FALSE, &minf);
 }
 
 //
@@ -799,11 +816,11 @@ void SetSpeedStyle(int speed)
 	minf.fMask = MIIM_STATE;
 
 	minf.fState = (speed == SPEED_REAL) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_SPEED_REAL, FALSE, &minf);
+	::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_SPEED_REAL, FALSE, &minf);
 	minf.fState = (speed == SPEED_SYNCTOVIDEO) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_SPEED_SYNC, FALSE, &minf);
+	::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_SPEED_SYNC, FALSE, &minf);
 	minf.fState = (speed == SPEED_FULL) ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_SPEED_FULL, FALSE, &minf);
+	::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_SPEED_FULL, FALSE, &minf);
 }
 
 //
@@ -816,12 +833,12 @@ void SetKeyInfoState()
 	minf.cbSize = sizeof(MENUITEMINFO);
 	minf.fMask = MIIM_STATE;
 	minf.fState = fKeyInfo ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_HELP_KEYBOARD, FALSE, &minf);
+	::SetMenuItemInfo(::GetMenu(hMainWnd), ID_HELP_KEYBOARD, FALSE, &minf);
 
 	if (fKeyInfo)
 		HelpKeyboard();
 	else
-		DestroyWindow(hKeyWnd);
+		::DestroyWindow(hKeyWnd);
 }
 
 //
@@ -843,7 +860,7 @@ void SetWindowTitle(CString s)
 	}
 
 	str += szTitle;
-	SetWindowText(hMainWnd, str);
+	::SetWindowText(hMainWnd, str);
 }
 
 //
@@ -856,7 +873,7 @@ void SetSoundState()
 	minf.cbSize = sizeof(MENUITEMINFO);
 	minf.fMask = MIIM_STATE;
 	minf.fState = isSound ? MFS_CHECKED : MFS_UNCHECKED;
-	SetMenuItemInfo(GetMenu(hMainWnd), ID_OPTIONS_SOUND, FALSE, &minf);
+	::SetMenuItemInfo(::GetMenu(hMainWnd), ID_OPTIONS_SOUND, FALSE, &minf);
 
 	if (isSound)
 	{

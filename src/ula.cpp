@@ -130,6 +130,39 @@ void BuildAccelTables()
 			AddrLine[LineAddr[y] + i] = 256 * y + i * 8;
 }
 
+/// <summary>
+/// Draws a single pixel on the DirectDraw surface based on the current BitCount and colour index.
+/// </summary>
+/// <param name="pdd">Pointer to the DirectDraw surface memory.</param>
+/// <param name="BitCount">Number of bits per pixel.</param>
+/// <param name="c">Colour index.</param>
+int DrawPixel(BYTE* pdd, BYTE BitCount, BYTE c)
+{
+	switch (BitCount)
+	{
+	case 8:
+		*pdd = PALETTE_OFFSET + c;
+		return 1;
+
+	case 16:
+		*pdd = SpecClrs16[c] & 0x00ff;
+		*(pdd + 1) = (SpecClrs16[c] & 0xff00) >> 8;
+		return 2;
+
+	case 24:
+		*pdd = SpecClrsRGB[c].b;
+		*(pdd + 1) = SpecClrsRGB[c].g;
+		*(pdd + 2) = SpecClrsRGB[c].r;
+		return 3;
+
+	case 32:
+		*pdd = SpecClrsRGB[c].b;
+		*(pdd + 1) = SpecClrsRGB[c].g;
+		*(pdd + 2) = SpecClrsRGB[c].r;
+		return 4;
+	}
+}
+
 //
 // Initializes the DirectInput
 //
@@ -172,7 +205,7 @@ BOOL InitDDSBack()
 
 	SAFERELEASE(pDDSBack);
 
-	ZeroMemory(&ddsd, sizeof(ddsd));
+	::ZeroMemory(&ddsd, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
@@ -206,7 +239,7 @@ BOOL InitDD()
 
 	HRESULT hr;
 
-	hr = DirectDrawCreate(NULL, &pDD, NULL);
+	hr = ::DirectDrawCreate(NULL, &pDD, NULL);
 	if (hr != DD_OK)
 		return FALSE;
 
@@ -252,7 +285,7 @@ BOOL InitDD()
 
 	DDSURFACEDESC ddsd;
 
-	ZeroMemory(&ddsd, sizeof(ddsd));
+	::ZeroMemory(&ddsd, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS;
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
@@ -280,8 +313,9 @@ BOOL InitDD()
 
 	if (BitCount < 8)
 	{
-		Failure(IDS_FAIL_FEWBITCOUNT);
-		PostQuitMessage(-1);
+		::Failure(IDS_FAIL_FEWBITCOUNT);
+		::PostQuitMessage(-1);
+		return FALSE;
 	}
 
 	//	Build SpecClrs16 colour table for 65536 colour screen
@@ -312,7 +346,7 @@ BOOL InitDD()
 	{
 		PALETTEENTRY ape[256];
 		HDC hdc = ::GetDC(NULL);
-		GetSystemPaletteEntries(hdc, 0, 256, ape);
+		::GetSystemPaletteEntries(hdc, 0, 256, ape);
 		for (int i = 0; i < 16; i++)
 		{
 			ape[50 + i].peBlue = SpecClrsRGB[i].b;
@@ -428,11 +462,11 @@ void Video()
 		return;
 
 	int j, k;
-	BYTE c, border;
+	BYTE pixelColor, borderColor;
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + BORDER_PORT) & 7;
+	borderColor = *(pOutp + BORDER_PORT) & 7;
 
 	for (BYTE ActLine = 0; ActLine < 240; ActLine++)
 	{
@@ -440,33 +474,7 @@ void Video()
 
 		for (j = 0; j < 32; j++)
 		{
-			switch (BitCount)
-			{
-			case 8:
-				*pdd = PALETTE_OFFSET + border;
-				pdd += 1;
-				break;
-
-			case 16:
-				*pdd = SpecClrs16[border] & 0x00ff;
-				*(pdd + 1) = SpecClrs16[border] >> 8;
-				pdd += 2;
-				break;
-
-			case 24:
-				*pdd = SpecClrsRGB[border].b;
-				*(pdd + 1) = SpecClrsRGB[border].g;
-				*(pdd + 2) = SpecClrsRGB[border].r;
-				pdd += 3;
-				break;
-
-			case 32:
-				*pdd = SpecClrsRGB[border].b;
-				*(pdd + 1) = SpecClrsRGB[border].g;
-				*(pdd + 2) = SpecClrsRGB[border].r;
-				pdd += 4;
-				break;
-			}
+			pdd += DrawPixel(pdd, BitCount, borderColor);
 		}
 
 		if (ActLine >= 24 && ActLine < 216)
@@ -483,38 +491,12 @@ void Video()
 					if (fFlashFlag && (*pam & 0x80))
 						bit = !bit;
 
-					c = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
+					pixelColor = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
 
 					if (*pam & 0x40)
-						c += 8;
+						pixelColor += 8;
 
-					switch (BitCount)
-					{
-					case 8:
-						*pdd = 50 + c;
-						pdd += 1;
-						break;
-
-					case 16:
-						*pdd = SpecClrs16[c] & 0x00ff;
-						*(pdd + 1) = SpecClrs16[c] >> 8;
-						pdd += 2;
-						break;
-
-					case 24:
-						*pdd = SpecClrsRGB[c].b;
-						*(pdd + 1) = SpecClrsRGB[c].g;
-						*(pdd + 2) = SpecClrsRGB[c].r;
-						pdd += 3;
-						break;
-
-					case 32:
-						*pdd = SpecClrsRGB[c].b;
-						*(pdd + 1) = SpecClrsRGB[c].g;
-						*(pdd + 2) = SpecClrsRGB[c].r;
-						pdd += 4;
-						break;
-					}
+					pdd += DrawPixel(pdd, BitCount, pixelColor);
 				}
 				pam++;
 			}
@@ -523,65 +505,13 @@ void Video()
 		{
 			for (j = 0; j < 256; j++)
 			{
-				switch (BitCount)
-				{
-				case 8:
-					*pdd = PALETTE_OFFSET + border;
-					pdd += 1;
-					break;
-
-				case 16:
-					*pdd = SpecClrs16[border] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[border] >> 8;
-					pdd += 2;
-					break;
-
-				case 24:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 3;
-					break;
-
-				case 32:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 4;
-					break;
-				}
+				pdd += DrawPixel(pdd, BitCount, borderColor);
 			}
 		}
 
 		for (j = 0; j < 32; j++)
 		{
-			switch (BitCount)
-			{
-			case 8:
-				*pdd = PALETTE_OFFSET + border;
-				pdd += 1;
-				break;
-
-			case 16:
-				*pdd = SpecClrs16[border] & 0x00ff;
-				*(pdd + 1) = SpecClrs16[border] >> 8;
-				pdd += 2;
-				break;
-
-			case 24:
-				*pdd = SpecClrsRGB[border].b;
-				*(pdd + 1) = SpecClrsRGB[border].g;
-				*(pdd + 2) = SpecClrsRGB[border].r;
-				pdd += 3;
-				break;
-
-			case 32:
-				*pdd = SpecClrsRGB[border].b;
-				*(pdd + 1) = SpecClrsRGB[border].g;
-				*(pdd + 2) = SpecClrsRGB[border].r;
-				pdd += 4;
-				break;
-			}
+			pdd += DrawPixel(pdd, BitCount, borderColor);
 		}
 	}
 
@@ -611,11 +541,11 @@ void VideoNoBorder()
 		return;
 
 	int j, k;
-	BYTE c, border;
+	BYTE pixelColor, borderColor;
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + BORDER_PORT) & 7;
+	borderColor = *(pOutp + BORDER_PORT) & 7;
 
 	for (BYTE ActLine = 0; ActLine < 192; ActLine++)
 	{
@@ -632,38 +562,12 @@ void VideoNoBorder()
 				if (fFlashFlag && (*pam & 0x80))
 					bit = !bit;
 
-				c = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
+				pixelColor = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
 
 				if (*pam & 0x40)
-					c += 8;
+					pixelColor += 8;
 
-				switch (BitCount)
-				{
-				case 8:
-					*pdd = 50 + c;
-					pdd += 1;
-					break;
-
-				case 16:
-					*pdd = SpecClrs16[c] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[c] >> 8;
-					pdd += 2;
-					break;
-
-				case 24:
-					*pdd = SpecClrsRGB[c].b;
-					*(pdd + 1) = SpecClrsRGB[c].g;
-					*(pdd + 2) = SpecClrsRGB[c].r;
-					pdd += 3;
-					break;
-
-				case 32:
-					*pdd = SpecClrsRGB[c].b;
-					*(pdd + 1) = SpecClrsRGB[c].g;
-					*(pdd + 2) = SpecClrsRGB[c].r;
-					pdd += 4;
-					break;
-				}
+				pdd += DrawPixel(pdd, BitCount, pixelColor);
 			}
 			pam++;
 		}
@@ -695,11 +599,11 @@ void VideoFullScreen()
 		return;
 
 	int j, k;
-	BYTE c, border;
+	BYTE pixelColor, borderColor;
 	BYTE* pdd, * pvm, * pam;
 	BOOL bit;
 
-	border = *(pOutp + BORDER_PORT) & 7;
+	borderColor = *(pOutp + BORDER_PORT) & 7;
 
 	// Calculate scaling factors
 	int scaleX = FullScreenWidth / 320;
@@ -726,33 +630,7 @@ void VideoFullScreen()
 			// Left border (32 pixels scaled)
 			for (j = 0; j < 32 * scaleX; j++)
 			{
-				switch (BitCount)
-				{
-				case 8:
-					*pdd = PALETTE_OFFSET + border;
-					pdd += 1;
-					break;
-
-				case 16:
-					*pdd = SpecClrs16[border] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[border] >> 8;
-					pdd += 2;
-					break;
-
-				case 24:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 3;
-					break;
-
-				case 32:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 4;
-					break;
-				}
+				pdd += DrawPixel(pdd, BitCount, borderColor);
 			}
 
 			if (ActLine >= 4 && ActLine < 196)
@@ -770,40 +648,14 @@ void VideoFullScreen()
 						if (fFlashFlag && (*pam & 0x80))
 							bit = !bit;
 
-						c = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
+						pixelColor = bit ? (*pam & 7) : (((*pam) >> 3) & 7);
 						if (*pam & 0x40)
-							c += 8;
+							pixelColor += 8;
 
 						// Write pixel scaleX times for horizontal scaling
 						for (int sx = 0; sx < scaleX; sx++)
 						{
-							switch (BitCount)
-							{
-							case 8:
-								*pdd = 50 + c;
-								pdd += 1;
-								break;
-
-							case 16:
-								*pdd = SpecClrs16[c] & 0x00ff;
-								*(pdd + 1) = SpecClrs16[c] >> 8;
-								pdd += 2;
-								break;
-
-							case 24:
-								*pdd = SpecClrsRGB[c].b;
-								*(pdd + 1) = SpecClrsRGB[c].g;
-								*(pdd + 2) = SpecClrsRGB[c].r;
-								pdd += 3;
-								break;
-
-							case 32:
-								*pdd = SpecClrsRGB[c].b;
-								*(pdd + 1) = SpecClrsRGB[c].g;
-								*(pdd + 2) = SpecClrsRGB[c].r;
-								pdd += 4;
-								break;
-							}
+							pdd += DrawPixel(pdd, BitCount, pixelColor);
 						}
 					}
 					pam++;
@@ -814,66 +666,14 @@ void VideoFullScreen()
 				// Top/bottom border area (256 pixels scaled)
 				for (j = 0; j < 256 * scaleX; j++)
 				{
-					switch (BitCount)
-					{
-					case 8:
-						*pdd = PALETTE_OFFSET + border;
-						pdd += 1;
-						break;
-
-					case 16:
-						*pdd = SpecClrs16[border] & 0x00ff;
-						*(pdd + 1) = SpecClrs16[border] >> 8;
-						pdd += 2;
-						break;
-
-					case 24:
-						*pdd = SpecClrsRGB[border].b;
-						*(pdd + 1) = SpecClrsRGB[border].g;
-						*(pdd + 2) = SpecClrsRGB[border].r;
-						pdd += 3;
-						break;
-
-					case 32:
-						*pdd = SpecClrsRGB[border].b;
-						*(pdd + 1) = SpecClrsRGB[border].g;
-						*(pdd + 2) = SpecClrsRGB[border].r;
-						pdd += 4;
-						break;
-					}
+					pdd += DrawPixel(pdd, BitCount, borderColor);
 				}
 			}
 
 			// Right border (32 pixels scaled)
 			for (j = 0; j < 32 * scaleX; j++)
 			{
-				switch (BitCount)
-				{
-				case 8:
-					*pdd = PALETTE_OFFSET + border;
-					pdd += 1;
-					break;
-
-				case 16:
-					*pdd = SpecClrs16[border] & 0x00ff;
-					*(pdd + 1) = SpecClrs16[border] >> 8;
-					pdd += 2;
-					break;
-
-				case 24:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 3;
-					break;
-
-				case 32:
-					*pdd = SpecClrsRGB[border].b;
-					*(pdd + 1) = SpecClrsRGB[border].g;
-					*(pdd + 2) = SpecClrsRGB[border].r;
-					pdd += 4;
-					break;
-				}
+				pdd += DrawPixel(pdd, BitCount, borderColor);
 			}
 		}
 	}

@@ -8,9 +8,9 @@
  *	https://github.com/fox20io/spem
  */
 
-/////////////////////////////////////////////////////////////////////////////
-// THIS IMPLEMENTATION HAS BEEN REALIZED ONLY FOR PUBLIC Z80 INSTRUCTIONS! //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// THIS IMPLEMENTATION SUPPORTS ONLY THE PUBLIC INSTRUCTIONS OF THE Z80 CPU! //
+///////////////////////////////////////////////////////////////////////////////
 
 #if !defined(ZILOG_Z80_CPU_V0100_INCLUDED)
 #define ZILOG_Z80_CPU_V0100_INCLUDED
@@ -42,7 +42,7 @@ typedef struct tagINITCPU
 #define ML_64K	0xffff
 
 // Unified register access symbols.
-// In the view of realization all register indirection, contant indirection and
+// In the view of realization all register indirection, constant indirection and
 // constant referencing must be considered as register.
 enum
 { 
@@ -135,7 +135,7 @@ public:
 	~CZ80();
 
 	// Interface for the hosting environment
-	void	Reset();			// Hardwareer reset
+	void	Reset();			// Hardware reset
 	void	Int(BYTE n = 0xff);	// Maskable interrupt request
 	void	Nmi();				// Non-maskable interrupt request
 	void	Run();				// Executing the next instruction in the queue

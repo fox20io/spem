@@ -135,12 +135,12 @@ FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     ICON            IDI_SAMPLE,IDC_MYICON,14,9,20,20
     LTEXT           "SpEm - ZX Spectrum 48k emulator",IDC_STATIC_ABOUT_1,45,10,110,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2000 Norbert László",IDC_STATIC_ABOUT3,45,30,119,8
+    LTEXT           "Copyright (C) 2000-2026 Norbert László",IDC_STATIC_ABOUT3,45,30,169,8
     DEFPUSHBUTTON   "OK",IDOK,86,95,58,14,WS_GROUP
-    LTEXT           "Version 1.1",IDC_STATIC_ABOUT2,45,20,119,8
+    LTEXT           "Version 1.2.0",IDC_STATIC_ABOUT2,45,20,119,8
     CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,4,45,223,1
-    LTEXT           "https://github.com/fox20io/spem",IDC_STATIC_ABOUT4,46,54,106,8
-    LTEXT           "https://fox20io.blogspot.com",IDC_STATIC_ABOUT5,46,69,92,8
+    LTEXT           "https://github.com/fox20io/spem",IDC_STATIC_GITHUB,45,51,153,8
+    LTEXT           "https://fox20io.blogspot.com",IDC_STATIC_BLOG,45,64,153,8
 END
 
 IDD_DEBUG DIALOGEX 0, 0, 405, 220
@@ -384,6 +384,45 @@ END
 IDD_JUMP AFX_DIALOG_LAYOUT
 BEGIN
     0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,2,0,1
+ PRODUCTVERSION 1,2,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904b0"
+        BEGIN
+            VALUE "CompanyName", "fox20io"
+            VALUE "FileDescription", "ZX Spectrum 48K Emulator for Windows"
+            VALUE "FileVersion", "1.2.0.1"
+            VALUE "InternalName", "spem.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2020-2026 Norbert László"
+            VALUE "OriginalFilename", "spem.exe"
+            VALUE "ProductName", "SpEm"
+            VALUE "ProductVersion", "1.2.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x809, 1200
+    END
 END
 
 

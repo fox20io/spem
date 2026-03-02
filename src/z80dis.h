@@ -8,9 +8,9 @@
  *	https://github.com/fox20io/spem
  */
 
-/////////////////////////////////////////////////////////////////////////////
-// THIS IMPLEMENTATION HAS BEEN REALIZED ONLY FOR PUBLIC Z80 INSTRUCTIONS! //
-/////////////////////////////////////////////////////////////////////////////
+ ///////////////////////////////////////////////////////////////////////////////
+ // THIS IMPLEMENTATION SUPPORTS ONLY THE PUBLIC INSTRUCTIONS OF THE Z80 CPU! //
+ ///////////////////////////////////////////////////////////////////////////////
 
 #if !defined(ZILOG_Z80_CPU_DISASSEMBLER_V0100_INCLUDED)
 #define ZILOG_Z80_CPU_DISASSEMBLER_V0100_INCLUDED
@@ -31,7 +31,7 @@ protected:
 	char		m_szData[10];
 	char		m_szMnemonic[6];
 	char		m_szOp[16];
-	BYTE* m_pMem;
+	BYTE*		m_pMem;
 	WORD		m_Addr;
 	int			m_Index;
 	BYTE		m_d;

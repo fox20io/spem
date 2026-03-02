@@ -18,9 +18,9 @@ enum { SPEED_REAL, SPEED_SYNCTOVIDEO, SPEED_FULL };
 
 #define CPU_FREQUENCY_HZ  3500000
 #define CPU_AVG_MCYCLES   4.5
-#define CPU_REAL_TICKS	7000
-#define CPU_IDLE_TICKS	5000
-#define	CPU_INT_TIMER	20
+#define CPU_REAL_TICKS	  7000
+#define CPU_IDLE_TICKS	  5000
+#define	CPU_INT_TIMER	  20
 
 void				InitContext();
 void				TermContext();

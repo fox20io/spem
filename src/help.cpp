@@ -116,9 +116,8 @@ void LoadList(HWND, int);
 
 void HelpKeyboard()
 {
-	hKeyWnd = CreateDialog(hInst, MAKEINTRESOURCE(IDD_KEYBOARD), hMainWnd,
-		(DLGPROC)HelpKeyboardWndProc);
-	ShowWindow(hKeyWnd, SW_SHOW);
+	hKeyWnd = ::CreateDialog(hInst, MAKEINTRESOURCE(IDD_KEYBOARD), hMainWnd, (DLGPROC)HelpKeyboardWndProc);
+	::ShowWindow(hKeyWnd, SW_SHOW);
 	return;
 }
 
@@ -135,17 +134,17 @@ LRESULT CALLBACK HelpKeyboardWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 		// Loading the content of the combobox and listbox from resources determined by the current category
 		hw = GetDlgItem(hwnd, IDC_COMBO_CAT);
 		LoadString(hInst, IDS_CATEGORIES2, str, MAX_LOADSTRING);
-		SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
+		::SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
 		LoadString(hInst, IDS_CATEGORIES3, str, MAX_LOADSTRING);
-		SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
+		::SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
 		LoadString(hInst, IDS_CATEGORIES4, str, MAX_LOADSTRING);
-		SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
+		::SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
 		LoadString(hInst, IDS_CATEGORIES5, str, MAX_LOADSTRING);
-		SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
+		::SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
 		LoadString(hInst, IDS_CATEGORIES, str, MAX_LOADSTRING);
-		SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
+		::SendMessage(hw, CB_ADDSTRING, 0, (LPARAM)str);
 
-		SendMessage(hw, CB_SETCURSEL, CurCatSel, 0);
+		::SendMessage(hw, CB_SETCURSEL, CurCatSel, 0);
 		LoadList(GetDlgItem(hwnd, IDC_LIST_ITEMS), CurCatSel);
 		break;
 
@@ -158,16 +157,16 @@ LRESULT CALLBACK HelpKeyboardWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 			switch ((int)wmId)
 			{
 			case IDC_COMBO_CAT:
-				CurCatSel = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+				CurCatSel = ::SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 				LoadList(GetDlgItem(hwnd, IDC_LIST_ITEMS), CurCatSel);
-				SetWindowText(GetDlgItem(hwnd, IDC_STATIC_DESC), "");
+				::SetWindowText(GetDlgItem(hwnd, IDC_STATIC_DESC), "");
 				break;
 			case IDC_LIST_ITEMS:
-				i = SendMessage((HWND)lParam, LB_GETCURSEL, 0, 0);
-				SendMessage((HWND)lParam, LB_GETTEXT, i, (LPARAM)(LPCSTR)str);
+				i = ::SendMessage((HWND)lParam, LB_GETCURSEL, 0, 0);
+				::SendMessage((HWND)lParam, LB_GETTEXT, i, (LPARAM)(LPCSTR)str);
 				for (i = 0; i < KHELPNUM; i++)
 					if (strcmp(aKHelp[i].string, str) == 0) break;
-				SetWindowText(GetDlgItem(hwnd, IDC_STATIC_DESC), aKHelp[i].keycomb);
+				::SetWindowText(GetDlgItem(hwnd, IDC_STATIC_DESC), aKHelp[i].keycomb);
 			}
 			break;
 		default:
@@ -180,7 +179,7 @@ LRESULT CALLBACK HelpKeyboardWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 				minf.cbSize = sizeof(MENUITEMINFO);
 				minf.fMask = MIIM_STATE;
 				minf.fState = MFS_UNCHECKED;
-				SetMenuItemInfo(GetMenu(hMainWnd), ID_HELP_KEYBOARD, FALSE, &minf);
+				::SetMenuItemInfo(GetMenu(hMainWnd), ID_HELP_KEYBOARD, FALSE, &minf);
 				return TRUE;
 			}
 		}
@@ -192,17 +191,17 @@ LRESULT CALLBACK HelpKeyboardWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 void LoadList(HWND hwnd, int cat)
 {
-	SendMessage(hwnd, LB_RESETCONTENT, 0, 0);
+	::SendMessage(hwnd, LB_RESETCONTENT, 0, 0);
+
 	for (int i = 0; i < KHELPNUM; i++)
 	{
 		if (cat == 4)
 		{
-			SendMessage(hwnd, LB_ADDSTRING, 0, (LPARAM)aKHelp[i].string);
+			::SendMessage(hwnd, LB_ADDSTRING, 0, (LPARAM)aKHelp[i].string);
 		}
-		else
+		else if (aKHelp[i].cat == cat)
 		{
-			if (aKHelp[i].cat == cat)
-				SendMessage(hwnd, LB_ADDSTRING, 0, (LPARAM)aKHelp[i].string);
+			::SendMessage(hwnd, LB_ADDSTRING, 0, (LPARAM)aKHelp[i].string);
 		}
 	}
 }

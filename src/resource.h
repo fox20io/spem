@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by sample.rc
+// Used by spem.rc
 //
 #define IDC_MYICON                      2
 #define IDJUMP                          3
@@ -119,6 +119,12 @@
 #define IDC_STATIC_JUMP_LAB             1077
 #define IDC_STATIC_KBA_F1               1078
 #define IDC_STATIC_KBA_F2               1079
+#define IDC_MFCLINK_GITHUB              1081
+#define IDC_MFCLINK2_BLOG               1082
+#define IDC_MFCLINK_BLOG                1082
+#define IDC_STATIC_GITHUB               1084
+#define IDC_STATIC_GITHUB2              1085
+#define IDC_STATIC_BLOG                 1085
 #define ID_FILE_RESET                   32771
 #define ID_OPTIONS_VIEW_1X1             32772
 #define ID_OPTIONS_VIEW_2X2             32773
@@ -151,9 +157,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        152
+#define _APS_NEXT_RESOURCE_VALUE        153
 #define _APS_NEXT_COMMAND_VALUE         32796
-#define _APS_NEXT_CONTROL_VALUE         1080
+#define _APS_NEXT_CONTROL_VALUE         1085
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

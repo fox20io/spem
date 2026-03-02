@@ -19,6 +19,8 @@
 #include <mmsystem.h>
 #include <ddraw.h>
 #include <dsound.h>
+#include <commctrl.h>
+#pragma comment(lib, "comctl32.lib")
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>

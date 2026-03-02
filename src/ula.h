@@ -28,17 +28,17 @@ typedef struct _KEYMATRIX
 #define SCREEN_BITMAP_SIZE  6144
 #define VIDEO_MEM_OFFSET    0x4000
 
-BOOL	InitDD();
-BOOL	InitDI();
-BOOL	InitDDSBack();
-void	TermDD();
-void	TermDI();
-void	DrawScreen();
-void	BuildKeyMatrix();
-void	BuildAccelTables();
+BOOL InitDD();
+BOOL InitDI();
+BOOL InitDDSBack();
+void TermDD();
+void TermDI();
+void DrawScreen();
+void BuildKeyMatrix();
+void BuildAccelTables();
 
-void	Video();
-void	VideoNoBorder();
-void	VideoFullScreen();
+void Video();
+void VideoNoBorder();
+void VideoFullScreen();
 
 #endif

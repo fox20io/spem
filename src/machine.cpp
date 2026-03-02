@@ -73,8 +73,6 @@ void InitContext()
 
 		HANDLE hMem = ::LoadResource(hInst, hrc);
 		LPVOID lpRom = ::LockResource(hMem);
-		//DWORD dwSize = ::SizeofResource( hInst, hrc );
-		//ASSERT( dwSize == VIDEO_MEM_OFFSET );
 		memcpy(pMem, lpRom, VIDEO_MEM_OFFSET);
 	}
 
@@ -82,8 +80,6 @@ void InitContext()
 	Cpu.Reset();
 
 	gl_ThreadData.lpSpeaker = (pOutp + BORDER_PORT);
-	//    AfxBeginThread( ThreadFunc, (LPVOID)&gl_ThreadData );
-
 	GL_InstructionsPerEmulatorLoop = ((double)CPU_INT_TIMER / 1000.0) / (CPU_AVG_MCYCLES / (double)CPU_FREQUENCY_HZ);
 }
 
@@ -124,9 +120,8 @@ void Operate()
 	{
 	case SPEED_REAL:
 	{
-		DWORD tTC;
+		ULONGLONG tTC = GetTickCount64();
 
-		tTC = GetTickCount64();
 		if ((tTC - lTC_df) >= CPU_INT_TIMER)
 		{
 			lTC_df = tTC;

@@ -25,7 +25,7 @@ Speaker::~Speaker()
 
 BOOL Speaker::Initialize()
 {
-	memset(&m_format, 0, sizeof(WAVEFORMATEX));
+	::memset(&m_format, 0, sizeof(WAVEFORMATEX));
 	m_format.wFormatTag = WAVE_FORMAT_PCM;
 	m_format.nChannels = 1;
 	m_format.wBitsPerSample = 8;
@@ -34,19 +34,18 @@ BOOL Speaker::Initialize()
 	m_format.nAvgBytesPerSec = m_format.nBlockAlign * m_format.nSamplesPerSec;
 	m_format.cbSize = 0;
 
-	if (DirectSoundCreate8(NULL, &m_dsound, NULL) != DS_OK)
+	if (::DirectSoundCreate8(NULL, &m_dsound, NULL) != DS_OK)
 		return FALSE;
-	if (m_dsound->SetCooperativeLevel(GetDesktopWindow(), DSSCL_PRIORITY) != DS_OK)
+	if (m_dsound->SetCooperativeLevel(::GetDesktopWindow(), DSSCL_PRIORITY) != DS_OK)
 		return FALSE;
 
-	memset(&m_buf_format, 0, sizeof(DSBUFFERDESC));
+	::memset(&m_buf_format, 0, sizeof(DSBUFFERDESC));
 	m_buf_format.dwSize = sizeof(m_buf_format);
 	m_buf_format.dwFlags =
 		DSBCAPS_GETCURRENTPOSITION2 |
 		DSBCAPS_STICKYFOCUS | 
 		DSBCAPS_GLOBALFOCUS |
 		DSBCAPS_LOCSOFTWARE |
-		//DSBCAPS_CTRLPOSITIONNOTIFY |
 		DSBCAPS_CTRLVOLUME;
 	m_buf_format.dwBufferBytes = (double)m_format.nSamplesPerSec * BufferLengthInMs / 1000.0;
 	m_buf_format.dwReserved = 0;
@@ -55,7 +54,7 @@ BOOL Speaker::Initialize()
 	if (m_dsound->CreateSoundBuffer(&m_buf_format, &m_dsbuf, NULL) != DS_OK)
 		return FALSE;
 
-	uint8_t* data1, * data2;	
+	uint8_t* data1, * data2;
 	uint32_t size1, size2;
 
 	if (IDirectSoundBuffer_Lock(m_dsbuf, 0, m_buf_format.dwBufferBytes, (LPVOID*)&data1, (LPDWORD)&size1,
@@ -147,10 +146,10 @@ BOOL AppWriteDataToBuffer(
 	{
 		// Write to pointers. 
 
-		CopyMemory(lpvPtr1, lpbSoundData, dwBytes1);
+		::CopyMemory(lpvPtr1, lpbSoundData, dwBytes1);
 		if (NULL != lpvPtr2)
 		{
-			CopyMemory(lpvPtr2, lpbSoundData + dwBytes1, dwBytes2);
+			::CopyMemory(lpvPtr2, lpbSoundData + dwBytes1, dwBytes2);
 		}
 
 		// Release the data back to DirectSound. 
@@ -184,7 +183,7 @@ void Speaker::ApplyBuffer(int runtimeSpanMs)
 		int stepInBuff = m_buffer_size / dsBuffSizeForSpan;
 		for (int i = 0, j = 0; i < dsBuffSizeForSpan; i ++)
 		{
-			soundData[i] = m_buffer[j] ? 200 : 56;
+			soundData[i] = m_buffer[j] ? MaxPcmValue : MinPcmValue;
 			j += stepInBuff;
 		}
 

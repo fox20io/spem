@@ -17,6 +17,8 @@ Other dependencies:
 
 I committed this software to be my thesis work in 2000 for Windows 98. I've found the source code in my archive and decided to share and make it open source.
 
+https://fox20io.blogspot.com/2021/01/zx-spectrum-emulator.html
+
 The emulator supports the following features:
 
 - 48KB of RAM
