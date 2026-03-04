@@ -140,6 +140,7 @@ int DrawPixel(BYTE* pdd, BYTE BitCount, BYTE c)
 {
 	switch (BitCount)
 	{
+	default:
 	case 8:
 		*pdd = PALETTE_OFFSET + c;
 		return 1;

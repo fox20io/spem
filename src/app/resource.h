@@ -136,6 +136,7 @@
 #define ID_OPTIONS_SPEEDTEST            32778
 #define ID_OPTIONS_SETSPEED             32779
 #define ID_OPTIONS_VIEW_BORDER          32780
+#undef ID_FILE_SAVE
 #define ID_FILE_SAVE                    32781
 #define IDA_FILE_LOAD                   -32754
 #define IDA_FILE_RESET                  -32752
@@ -150,6 +151,7 @@
 #define ID_HELP_KEYBOARD                32793
 #define ID_FOCUSTOKINF                  32794
 #define ID_FILE_SAVEAS                  32795
+#undef IDC_STATIC
 #define IDC_STATIC                      -1
 #define ID_OPTIONS_SOUND                65535
 

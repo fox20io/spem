@@ -80,7 +80,7 @@ void InitContext()
 	Cpu.Reset();
 
 	gl_ThreadData.lpSpeaker = (pOutp + BORDER_PORT);
-	GL_InstructionsPerEmulatorLoop = ((double)CPU_INT_TIMER / 1000.0) / (CPU_AVG_MCYCLES / (double)CPU_FREQUENCY_HZ);
+	GL_InstructionsPerEmulatorLoop = (int)(((double)CPU_INT_TIMER / 1000.0) / (CPU_AVG_MCYCLES / (double)CPU_FREQUENCY_HZ));
 }
 
 //

@@ -29,7 +29,7 @@ protected:
 	LPBYTE              m_buffer = NULL;
 	int                 m_buffer_size = 0;
 	int                 m_buffer_pos = 0;
-	int                 m_last_dsbuff_pos = 0;
+	DWORD               m_last_dsbuff_pos = 0;
 
 public:
 	Speaker();

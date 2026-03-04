@@ -47,7 +47,7 @@ BOOL Speaker::Initialize()
 		DSBCAPS_GLOBALFOCUS |
 		DSBCAPS_LOCSOFTWARE |
 		DSBCAPS_CTRLVOLUME;
-	m_buf_format.dwBufferBytes = (double)m_format.nSamplesPerSec * BufferLengthInMs / 1000.0;
+	m_buf_format.dwBufferBytes = (DWORD)((double)m_format.nSamplesPerSec * BufferLengthInMs / 1000.0);
 	m_buf_format.dwReserved = 0;
 	m_buf_format.lpwfxFormat = &m_format;
 
@@ -174,14 +174,14 @@ void Speaker::ApplyBuffer(int runtimeSpanMs)
 	{
 		// calc the size of buffer for runtime span
 		double bytesPerMs = (double)m_format.nSamplesPerSec / 1000.0;
-		DWORD dsBuffSizeForSpan = runtimeSpanMs * bytesPerMs;
+		DWORD dsBuffSizeForSpan = (DWORD)(runtimeSpanMs * bytesPerMs);
 		if (dsBuffSizeForSpan > m_buf_format.dwBufferBytes)
 			dsBuffSizeForSpan = m_buf_format.dwBufferBytes;
 		if (dsBuffSizeForSpan == 0)
 			return;
 		BYTE* soundData = new BYTE[dsBuffSizeForSpan];
-		int stepInBuff = m_buffer_size / dsBuffSizeForSpan;
-		for (int i = 0, j = 0; i < dsBuffSizeForSpan; i ++)
+		DWORD stepInBuff = m_buffer_size / dsBuffSizeForSpan;
+		for (DWORD i = 0, j = 0; i < dsBuffSizeForSpan; i ++)
 		{
 			soundData[i] = m_buffer[j] ? MaxPcmValue : MinPcmValue;
 			j += stepInBuff;
